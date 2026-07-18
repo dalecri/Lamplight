@@ -61,6 +61,24 @@
     }
     .card-slide { scroll-snap-align: center; scroll-snap-stop: always; }
 
+    /* Normal reading mode: one page's worth of text at a time, width scales with screen size */
+    .reading-page { width: 100%; max-width: 640px; }
+    @media (min-width: 768px) {
+      .reading-page { max-width: 760px; }
+    }
+    @media (min-width: 1100px) {
+      .reading-page { max-width: 860px; }
+    }
+
+    @keyframes page-in {
+      from { opacity: 0; transform: translateX(10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .reading-page-anim { animation: page-in 0.22s ease; }
+    @media (prefers-reduced-motion: reduce) {
+      .reading-page-anim { animation: none; }
+    }
+
     .glow {
       background: radial-gradient(circle, rgba(168,147,201,0.4) 0%, rgba(168,147,201,0) 70%);
     }
@@ -110,7 +128,9 @@ const {
   useState,
   useEffect,
   useRef,
-  useCallback
+  useCallback,
+  useMemo,
+  useLayoutEffect
 } = React;
 const IconProps = {
   fill: "none",
@@ -198,6 +218,18 @@ const ChevronUp = ({
   ...IconProps
 }, /*#__PURE__*/React.createElement("polyline", {
   points: "18 15 12 9 6 15"
+}));
+const ChevronRight = ({
+  size = 24,
+  className = ""
+}) => /*#__PURE__*/React.createElement("svg", {
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  className: className,
+  ...IconProps
+}, /*#__PURE__*/React.createElement("polyline", {
+  points: "9 18 15 12 9 6"
 }));
 const BookOpen = ({
   size = 24,
@@ -327,6 +359,18 @@ const EyeOff = ({
   y1: "1",
   x2: "23",
   y2: "23"
+}));
+const Zap = ({
+  size = 24,
+  className = ""
+}) => /*#__PURE__*/React.createElement("svg", {
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  className: className,
+  ...IconProps
+}, /*#__PURE__*/React.createElement("polygon", {
+  points: "13 2 3 14 12 14 11 22 21 10 12 10 13 2"
 }));
 
 // --- Reading font themes ---
@@ -850,9 +894,10 @@ function App() {
   const [readingThemeId, setReadingThemeId] = useState('night');
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showSpeed, setShowSpeed] = useState(false);
+  const [readMode, setReadMode] = useState('rsvp'); // 'rsvp' | 'normal'
   const [showControls, setShowControls] = useState(true);
   const [session, setSession] = useState(undefined); // undefined = checking, null = signed out
-  const [devMode, setDevMode] = useState(false); // testing bypass: skips Supabase, books stay local-only
+  const [devMode, setDevMode] = useState(false); // local-only mode: no account, no Supabase, books stay on this device only
   const [authMode, setAuthMode] = useState('signIn'); // 'signIn' | 'signUp'
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -937,51 +982,112 @@ function App() {
     return () => el.removeEventListener('scroll', onScroll);
   }, [books.length]);
 
+  // --- Normal reading mode: real pages that fit the screen exactly, no scrolling ---
+  const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 400);
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const wordsPerPage = viewportWidth < 640 ? 160 : viewportWidth < 1100 ? 260 : 420;
+  const pageBoxRef = useRef(null);
+  const pageContentRef = useRef(null);
+  const [pageFitCount, setPageFitCount] = useState(wordsPerPage);
+  const pageHistoryRef = useRef([]);
+
+  // Starting a fresh page (new position or new viewport size): re-estimate, measurement will trim it down if needed
+  useEffect(() => {
+    setPageFitCount(wordsPerPage);
+  }, [wordIndex, wordsPerPage, activeBook]);
+  useLayoutEffect(() => {
+    if (readMode !== 'normal') return;
+    const box = pageBoxRef.current;
+    const content = pageContentRef.current;
+    if (!box || !content) return;
+    if (content.scrollHeight > box.clientHeight && pageFitCount > 20) {
+      setPageFitCount(c => Math.max(20, c - 15));
+    }
+  }, [pageFitCount, readMode, wordIndex, viewportWidth]);
+  useEffect(() => {
+    if (readMode === 'normal') pageHistoryRef.current = [];
+  }, [readMode, activeBook]);
+  const pageStart = wordIndex;
+  const pageWords = activeBook ? activeBook.words.slice(pageStart, Math.min(pageStart + pageFitCount, activeBook.words.length)) : [];
+  const pageEnd = pageStart + pageWords.length;
+  const isLastPage = activeBook ? pageEnd >= activeBook.words.length : true;
+  const isFirstPage = pageStart <= 0;
+  const goForwardPage = () => {
+    if (!activeBook || isLastPage) return;
+    pageHistoryRef.current.push(pageStart);
+    setWordIndex(pageEnd);
+  };
+  const goBackPage = () => {
+    if (isFirstPage) return;
+    const prev = pageHistoryRef.current.pop();
+    setWordIndex(prev !== undefined ? prev : Math.max(0, pageStart - wordsPerPage));
+  };
+
   // Keyboard shortcuts in reader
   useEffect(() => {
     const handleKeyDown = e => {
       if (!activeBook) return;
       if (document.activeElement.tagName === 'INPUT') return;
-      switch (e.code) {
-        case 'Space':
-          e.preventDefault();
-          setIsPlaying(p => !p);
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          setIsPlaying(false);
-          setWordIndex(i => Math.min(i + 1, activeBook.words.length - 1));
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          setIsPlaying(false);
-          setWordIndex(i => Math.max(i - 1, 0));
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setWpm(w => Math.min(w + 50, 1000));
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          setWpm(w => Math.max(w - 50, 100));
-          break;
-        case 'BracketLeft':
-        case 'BracketRight':
-          e.preventDefault();
-          setShowChapters(s => !s);
-          break;
-        default:
-          break;
+      if (readMode === 'rsvp') {
+        switch (e.code) {
+          case 'Space':
+            e.preventDefault();
+            setIsPlaying(p => !p);
+            break;
+          case 'ArrowRight':
+            e.preventDefault();
+            setIsPlaying(false);
+            setWordIndex(i => Math.min(i + 1, activeBook.words.length - 1));
+            break;
+          case 'ArrowLeft':
+            e.preventDefault();
+            setIsPlaying(false);
+            setWordIndex(i => Math.max(i - 1, 0));
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            setWpm(w => Math.min(w + 50, 1000));
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            setWpm(w => Math.max(w - 50, 100));
+            break;
+          case 'BracketLeft':
+          case 'BracketRight':
+            e.preventDefault();
+            setShowChapters(s => !s);
+            break;
+          default:
+            break;
+        }
+      } else {
+        switch (e.code) {
+          case 'ArrowRight':
+          case 'Space':
+            e.preventDefault();
+            goForwardPage();
+            break;
+          case 'ArrowLeft':
+            e.preventDefault();
+            goBackPage();
+            break;
+          default:
+            break;
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeBook]);
+  }, [activeBook, readMode, pageStart, pageEnd, isFirstPage, isLastPage]);
 
   // RSVP timer
   useEffect(() => {
     let interval;
-    if (isPlaying && activeBook && wordIndex < activeBook.words.length - 1) {
+    if (isPlaying && readMode === 'rsvp' && activeBook && wordIndex < activeBook.words.length - 1) {
       const msPerWord = 60000 / wpm;
       interval = setInterval(() => {
         setWordIndex(prev => {
@@ -994,7 +1100,7 @@ function App() {
       }, msPerWord);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, wpm, activeBook, wordIndex]);
+  }, [isPlaying, wpm, activeBook, wordIndex, readMode]);
   const handleFileUpload = async e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1078,6 +1184,7 @@ function App() {
     setShowChapters(false);
     setShowControls(true);
     setShowSpeed(false);
+    setReadMode('rsvp');
   };
   const closeBook = async () => {
     if (activeBook) {
@@ -1132,6 +1239,7 @@ function App() {
   const currentChapterIdx = activeBook ? activeBook.chapters?.findLastIndex(c => c.index <= wordIndex) ?? -1 : -1;
   const activeReadingTheme = READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0];
   const readerTheme = readingThemeTokens(activeReadingTheme);
+  const highlightRef = useRef(null);
   if (session === undefined) {
     return /*#__PURE__*/React.createElement("div", {
       className: "flex items-center justify-center",
@@ -1226,11 +1334,15 @@ function App() {
       }
     }, authMode === 'signUp' ? 'Have an account? Sign in' : "New here? Create an account"), /*#__PURE__*/React.createElement("button", {
       onClick: () => setDevMode(true),
-      className: "w-full text-center text-[10px] font-mono mt-6 opacity-40",
+      className: "w-full text-center mt-6 transition-colors",
       style: {
         color: chromeTheme.muted
       }
-    }, "Skip sign-in (testing only — books won't be saved)")));
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "block text-xs font-mono"
+    }, "Continue without an account"), /*#__PURE__*/React.createElement("span", {
+      className: "block text-[10px] font-mono opacity-70 mt-0.5"
+    }, "Local only · no cloud sync · progress won't follow you across devices"))));
   }
   return /*#__PURE__*/React.createElement("div", {
     className: "w-full",
@@ -1279,16 +1391,35 @@ function App() {
       background: readerTheme.pivot
     }
   }), activeReadingTheme.label || 'Custom'), /*#__PURE__*/React.createElement("div", {
-    className: "w-9 shrink-0"
+    className: "w-[76px] shrink-0"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "absolute z-40 flex items-center gap-1",
+    style: {
+      top: 'max(1.1rem, env(safe-area-inset-top))',
+      right: '1.1rem'
+    }
+  }, showControls && /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setIsPlaying(false);
+      setReadMode(m => m === 'rsvp' ? 'normal' : 'rsvp');
+    },
+    className: "w-9 h-9 flex items-center justify-center rounded-full transition-colors",
+    style: {
+      color: readerTheme.muted
+    },
+    "aria-label": readMode === 'rsvp' ? 'Switch to normal reading' : 'Switch to flow reading'
+  }, readMode === 'rsvp' ? /*#__PURE__*/React.createElement(BookOpen, {
+    size: 16
+  }) : /*#__PURE__*/React.createElement(Zap, {
+    size: 16
   })), /*#__PURE__*/React.createElement("button", {
     onClick: e => {
       e.stopPropagation();
       setShowControls(s => !s);
     },
-    className: "absolute z-40 p-2 rounded-full transition-opacity",
+    className: "p-2 rounded-full transition-opacity",
     style: {
-      top: 'max(1.1rem, env(safe-area-inset-top))',
-      right: '1.1rem',
       color: readerTheme.muted,
       opacity: showControls ? 0.9 : 0.4
     },
@@ -1297,7 +1428,7 @@ function App() {
     size: 16
   }) : /*#__PURE__*/React.createElement(Eye, {
     size: 16
-  })), /*#__PURE__*/React.createElement("main", {
+  }))), readMode === 'rsvp' ? /*#__PURE__*/React.createElement("main", {
     className: "flex-1 flex items-center justify-center relative cursor-pointer",
     onClick: () => setIsPlaying(!isPlaying)
   }, /*#__PURE__*/React.createElement(RSVPWord, {
@@ -1306,7 +1437,74 @@ function App() {
     ink: readerTheme.ink,
     pivotColor: readerTheme.pivot,
     glowColor: readerTheme.glow
-  })), showControls && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+  })) : /*#__PURE__*/React.createElement("main", {
+    className: "flex-1 relative overflow-hidden",
+    onClick: e => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if (x < rect.width * 0.32) goBackPage();else if (x > rect.width * 0.68) goForwardPage();
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    key: pageStart,
+    className: "absolute inset-0 reading-page-anim"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "reading-page mx-auto h-full px-8 lg:px-16 pt-6 pb-14"
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: pageBoxRef,
+    className: "h-full overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: pageContentRef
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "font-display text-[1.05rem] leading-[1.85]",
+    style: {
+      color: readerTheme.ink
+    }
+  }, pageWords.map((w, wi) => {
+    const isCurrentWord = pageStart + wi === wordIndex;
+    return /*#__PURE__*/React.createElement("span", {
+      key: wi,
+      ref: isCurrentWord ? highlightRef : null,
+      style: isCurrentWord ? {
+        background: `${readerTheme.pivot}45`,
+        borderRadius: '3px',
+        boxDecorationBreak: 'clone',
+        WebkitBoxDecorationBreak: 'clone'
+      } : undefined
+    }, w, ' ');
+  })))))), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      goBackPage();
+    },
+    disabled: isFirstPage,
+    className: "hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-opacity disabled:opacity-0",
+    style: {
+      color: readerTheme.muted
+    },
+    "aria-label": "Previous page"
+  }, /*#__PURE__*/React.createElement(ChevronLeft, {
+    size: 20
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      goForwardPage();
+    },
+    disabled: isLastPage,
+    className: "hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-opacity disabled:opacity-0",
+    style: {
+      color: readerTheme.muted
+    },
+    "aria-label": "Next page"
+  }, /*#__PURE__*/React.createElement(ChevronRight, {
+    size: 20
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "absolute bottom-3 left-0 right-0 h-4 flex items-center justify-center pointer-events-none"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-mono text-[10px] whitespace-nowrap",
+    style: {
+      color: readerTheme.muted
+    }
+  }, activeBook ? (pageStart / Math.max(activeBook.words.length - 1, 1) * 100).toFixed(0) : 0, "% through"))), showControls && readMode === 'rsvp' && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
     onClick: e => {
       e.stopPropagation();
       setShowChapters(true);
@@ -1432,15 +1630,41 @@ function App() {
     style: {
       color: readerTheme.muted
     }
-  }, "Slow"), /*#__PURE__*/React.createElement("input", {
+  }, "Slow"), /*#__PURE__*/React.createElement("div", {
+    className: "relative flex-1 h-6 flex items-center"
+  }, /*#__PURE__*/React.createElement("input", {
     type: "range",
     min: "100",
     max: "1000",
     step: "50",
     value: wpm,
     onChange: e => setWpm(Number(e.target.value)),
-    className: "flex-1 cursor-pointer"
-  }), /*#__PURE__*/React.createElement("span", {
+    className: "w-full absolute inset-0 opacity-0 cursor-pointer z-10"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "w-full flex items-center justify-between pointer-events-none"
+  }, Array.from({
+    length: 10
+  }).map((_, i) => {
+    const dotPct = i / 9 * 100;
+    const wpmPct = (wpm - 100) / (1000 - 100) * 100;
+    const filled = dotPct <= wpmPct;
+    return /*#__PURE__*/React.createElement("span", {
+      key: i,
+      className: "rounded-full shrink-0",
+      style: {
+        width: 4,
+        height: 4,
+        background: filled ? readerTheme.pivot : readerTheme.track
+      }
+    });
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "absolute w-3 h-3 rounded-full pointer-events-none -ml-1.5",
+    style: {
+      left: `${(wpm - 100) / (1000 - 100) * 100}%`,
+      background: readerTheme.pivot,
+      boxShadow: `0 0 6px ${readerTheme.pivot}b3`
+    }
+  })), /*#__PURE__*/React.createElement("span", {
     className: "font-mono text-[9px] uppercase tracking-wide shrink-0",
     style: {
       color: readerTheme.muted
@@ -1590,7 +1814,7 @@ function App() {
   }, "Lamplight")), /*#__PURE__*/React.createElement("button", {
     onClick: handleSignOut,
     className: "font-mono text-[9px] uppercase tracking-wide text-[#a89bc9]/60 active:text-[#a89bc9] transition-colors"
-  }, "Sign out")), /*#__PURE__*/React.createElement("div", {
+  }, devMode ? 'Exit local mode' : 'Sign out')), /*#__PURE__*/React.createElement("div", {
     className: "px-5 pt-2 pb-3 shrink-0"
   }, /*#__PURE__*/React.createElement("h1", {
     className: "font-display font-medium text-[1.6rem] leading-[1.15] text-[#f2ecdd]"
