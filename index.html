@@ -893,6 +893,8 @@ function App() {
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
   const [readingThemeId, setReadingThemeId] = useState('night');
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const FONT_SIZES = [0.95, 1.05, 1.2, 1.35, 1.5]; // rem, for normal reading mode
+  const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [showSpeed, setShowSpeed] = useState(false);
   const [readMode, setReadMode] = useState('rsvp'); // 'rsvp' | 'normal'
   const [showControls, setShowControls] = useState(true);
@@ -994,11 +996,12 @@ function App() {
   const pageContentRef = useRef(null);
   const [pageFitCount, setPageFitCount] = useState(wordsPerPage);
   const pageHistoryRef = useRef([]);
+  const touchStartXRef = useRef(null);
 
-  // Starting a fresh page (new position or new viewport size): re-estimate, measurement will trim it down if needed
+  // Starting a fresh page (new position, viewport size, or font size): re-estimate, measurement will trim it down if needed
   useEffect(() => {
     setPageFitCount(wordsPerPage);
-  }, [wordIndex, wordsPerPage, activeBook]);
+  }, [wordIndex, wordsPerPage, activeBook, fontSizeIdx]);
   useLayoutEffect(() => {
     if (readMode !== 'normal') return;
     const box = pageBoxRef.current;
@@ -1007,7 +1010,7 @@ function App() {
     if (content.scrollHeight > box.clientHeight && pageFitCount > 20) {
       setPageFitCount(c => Math.max(20, c - 15));
     }
-  }, [pageFitCount, readMode, wordIndex, viewportWidth]);
+  }, [pageFitCount, readMode, wordIndex, viewportWidth, fontSizeIdx, showControls]);
   useEffect(() => {
     if (readMode === 'normal') pageHistoryRef.current = [];
   }, [readMode, activeBook]);
@@ -1203,24 +1206,10 @@ function App() {
     setBooks(prev => prev.filter(b => b.id !== id));
     if (!devMode) deleteBookRemote(id).catch(console.error);
   };
-  const stepChapter = direction => {
+  const stepWord = direction => {
     setIsPlaying(false);
-    const chapters = activeBook?.chapters || [];
-    if (chapters.length === 0) return;
-    const curIdx = chapters.findLastIndex(c => c.index <= wordIndex);
-    const safeCur = curIdx !== -1 ? curIdx : 0;
-    if (direction === 'forward') {
-      const next = chapters[safeCur + 1];
-      setWordIndex(next ? next.index : activeBook.words.length - 1);
-    } else {
-      const curStart = chapters[safeCur].index;
-      if (wordIndex - curStart > 15) {
-        setWordIndex(curStart);
-      } else {
-        const prev = chapters[Math.max(safeCur - 1, 0)];
-        setWordIndex(prev.index);
-      }
-    }
+    if (!activeBook) return;
+    if (direction === 'forward') setWordIndex(i => Math.min(i + 1, activeBook.words.length - 1));else setWordIndex(i => Math.max(i - 1, 0));
   };
   const handleSeek = e => {
     setWordIndex(parseInt(e.target.value, 10));
@@ -1443,6 +1432,17 @@ function App() {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       if (x < rect.width * 0.32) goBackPage();else if (x > rect.width * 0.68) goForwardPage();
+    },
+    onTouchStart: e => {
+      touchStartXRef.current = e.touches[0].clientX;
+    },
+    onTouchEnd: e => {
+      if (touchStartXRef.current === null) return;
+      const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+      touchStartXRef.current = null;
+      if (Math.abs(deltaX) > 48) {
+        if (deltaX < 0) goForwardPage();else goBackPage();
+      }
     }
   }, /*#__PURE__*/React.createElement("div", {
     key: pageStart,
@@ -1451,13 +1451,17 @@ function App() {
     className: "reading-page mx-auto h-full px-8 lg:px-16 pt-6 pb-14"
   }, /*#__PURE__*/React.createElement("div", {
     ref: pageBoxRef,
-    className: "h-full overflow-hidden"
+    className: "h-full overflow-hidden flex flex-col",
+    style: {
+      justifyContent: showControls ? 'flex-start' : 'center'
+    }
   }, /*#__PURE__*/React.createElement("div", {
     ref: pageContentRef
   }, /*#__PURE__*/React.createElement("p", {
-    className: "font-display text-[1.05rem] leading-[1.85]",
+    className: "font-display leading-[1.85]",
     style: {
-      color: readerTheme.ink
+      color: readerTheme.ink,
+      fontSize: `${FONT_SIZES[fontSizeIdx]}rem`
     }
   }, pageWords.map((w, wi) => {
     const isCurrentWord = pageStart + wi === wordIndex;
@@ -1570,8 +1574,8 @@ function App() {
       border: `1px solid ${readerTheme.ink}1a`
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => stepChapter('backward'),
-    "aria-label": "Previous chapter",
+    onClick: () => stepWord('backward'),
+    "aria-label": "Previous word",
     className: "active:opacity-60 transition-opacity",
     style: {
       color: readerTheme.muted
@@ -1581,8 +1585,8 @@ function App() {
   })), /*#__PURE__*/React.createElement("div", {
     className: "w-9"
   }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => stepChapter('forward'),
-    "aria-label": "Next chapter",
+    onClick: () => stepWord('forward'),
+    "aria-label": "Next word",
     className: "active:opacity-60 transition-opacity",
     style: {
       color: readerTheme.muted
@@ -1728,7 +1732,7 @@ function App() {
     className: "flex-1",
     onClick: () => setShowThemePicker(false)
   }), /*#__PURE__*/React.createElement("div", {
-    className: "rounded-t-3xl flex flex-col transition-colors",
+    className: "rounded-t-3xl flex flex-col transition-colors max-h-[85vh] overflow-y-auto",
     style: {
       background: readerTheme.panel,
       borderTop: `1px solid ${readerTheme.line}`
@@ -1747,7 +1751,7 @@ function App() {
     style: {
       color: readerTheme.ink
     }
-  }, "Reading theme"), /*#__PURE__*/React.createElement("button", {
+  }, "Customize"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowThemePicker(false),
     className: "p-1",
     style: {
@@ -1756,7 +1760,83 @@ function App() {
   }, /*#__PURE__*/React.createElement(X, {
     size: 18
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pb-2 grid grid-cols-2 gap-2"
+    className: "px-5 pb-4"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-mono uppercase tracking-wide mb-2.5",
+    style: {
+      color: readerTheme.muted
+    }
+  }, "Font"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, THEMES.map((t, i) => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    onClick: () => setThemeIdx(i),
+    className: "flex flex-col items-center gap-1 py-2.5 rounded-xl text-sm transition-colors",
+    style: {
+      background: i === themeIdx ? `${readerTheme.ink}12` : 'transparent',
+      border: `1px solid ${i === themeIdx ? readerTheme.chipText : readerTheme.line}`,
+      color: readerTheme.ink
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: t.display
+    },
+    className: "text-base leading-none"
+  }, t.glyph), /*#__PURE__*/React.createElement("span", {
+    className: "font-mono text-[9px] uppercase tracking-wide",
+    style: {
+      color: readerTheme.muted
+    }
+  }, t.label))))), /*#__PURE__*/React.createElement("div", {
+    className: "px-5 pb-4"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-mono uppercase tracking-wide mb-2.5",
+    style: {
+      color: readerTheme.muted
+    }
+  }, "Text size · normal reading"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setFontSizeIdx(i => Math.max(0, i - 1)),
+    disabled: fontSizeIdx === 0,
+    className: "w-10 h-10 flex items-center justify-center rounded-full transition-colors disabled:opacity-30",
+    style: {
+      border: `1px solid ${readerTheme.line}`,
+      color: readerTheme.ink
+    },
+    "aria-label": "Decrease text size"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-display text-xs"
+  }, "A")), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 flex items-center justify-center gap-1.5"
+  }, FONT_SIZES.map((_, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    className: "rounded-full",
+    style: {
+      width: 5,
+      height: 5,
+      background: i === fontSizeIdx ? readerTheme.chipText : readerTheme.line
+    }
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setFontSizeIdx(i => Math.min(FONT_SIZES.length - 1, i + 1)),
+    disabled: fontSizeIdx === FONT_SIZES.length - 1,
+    className: "w-10 h-10 flex items-center justify-center rounded-full transition-colors disabled:opacity-30",
+    style: {
+      border: `1px solid ${readerTheme.line}`,
+      color: readerTheme.ink
+    },
+    "aria-label": "Increase text size"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-display text-lg"
+  }, "A")))), /*#__PURE__*/React.createElement("div", {
+    className: "px-5 pb-2"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-mono uppercase tracking-wide mb-2.5",
+    style: {
+      color: readerTheme.muted
+    }
+  }, "Reading theme"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
   }, READING_PRESETS.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.id,
     onClick: () => {
@@ -1775,7 +1855,7 @@ function App() {
       background: t.bg,
       border: `1px solid ${t.ink}40`
     }
-  }), t.label))), /*#__PURE__*/React.createElement("div", {
+  }), t.label)))), /*#__PURE__*/React.createElement("div", {
     className: "px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
   }, /*#__PURE__*/React.createElement("p", {
     className: "text-[10px] font-mono uppercase tracking-wide mb-2.5",
@@ -1884,15 +1964,7 @@ function App() {
     className: `h-1.5 rounded-full transition-all ${idx === activeCardIndex ? 'w-4 bg-[#f0ab3c]' : 'w-1.5 bg-[rgba(242,236,221,0.15)]'}`
   }))), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-1 shrink-0"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: cycleTheme,
-    "aria-label": "Change reading font",
-    className: "flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full border border-[var(--line)] text-[#a89bc9] active:text-[#f2ecdd] transition-colors"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "font-display text-[13px] leading-none"
-  }, theme.glyph), /*#__PURE__*/React.createElement("span", {
-    className: "font-mono text-[9px] uppercase tracking-wide"
-  }, theme.label)), /*#__PURE__*/React.createElement("span", {
     className: "font-mono text-[10px] text-[#a89bc9]"
   }, books.length, " book", books.length !== 1 ? 's' : ''), /*#__PURE__*/React.createElement("input", {
     type: "file",
