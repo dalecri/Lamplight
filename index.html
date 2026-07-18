@@ -20,22 +20,34 @@
 
   <style>
     :root {
-      --ink: #0c0a08;
-      --paper: #f4ead9;
-      --surface: #17130f;
-      --surface-2: #1e1913;
-      --amber: #e8a33d;
-      --amber-soft: #f4c874;
-      --muted: #8a7d6a;
-      --line: rgba(232,163,61,0.14);
+      --ink: #211f30;
+      --paper: #e9e4f0;
+      --surface: #29273c;
+      --surface-2: #302d46;
+      --amber: #a893c9;
+      --amber-soft: #a893c9;
+      --muted: #9089ab;
+      --line: rgba(168,147,201,0.18);
     }
     * { -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; overscroll-behavior: none; }
     body {
       margin: 0; padding: 0;
-      background: var(--ink);
+      background: linear-gradient(160deg, #211f30 0%, #29273c 100%);
+      background-attachment: fixed;
       color: var(--paper);
       font-family: 'Inter', sans-serif;
+      position: relative;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0.05;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
     .font-display { font-family: var(--font-display, 'Fraunces', serif); }
     .font-mono { font-family: 'IBM Plex Mono', monospace; }
@@ -50,7 +62,7 @@
     .card-slide { scroll-snap-align: center; scroll-snap-stop: always; }
 
     .glow {
-      background: radial-gradient(circle, rgba(232,163,61,0.35) 0%, rgba(232,163,61,0) 70%);
+      background: radial-gradient(circle, rgba(168,147,201,0.4) 0%, rgba(168,147,201,0) 70%);
     }
 
     input[type=range]::-webkit-slider-thumb {
@@ -58,7 +70,7 @@
       height: 14px; width: 14px;
       border-radius: 50%;
       background: var(--amber-soft);
-      box-shadow: 0 0 8px rgba(232,163,61,0.6);
+      box-shadow: 0 0 8px rgba(168,147,201,0.6);
       margin-top: -6px;
     }
     input[type=range]::-webkit-slider-runnable-track {
@@ -330,57 +342,274 @@ const hashString = (str = '') => {
   return h;
 };
 
-// Cute pastel color-block covers (bg + matching ink) for books with no extracted cover art
-const PASTELS = [{
-  bg: '#f3d7bd',
-  ink: '#6b4226'
+// --- Retro lamp "looks" for book covers: each pairs a color scheme with a simple flat lamp shape ---
+const LOOKS = [{
+  bg: '#2b2438',
+  ink: '#f2ece2',
+  lamp: '#e8593a',
+  beam: '#c9a8e0',
+  variant: 'pendant'
 }, {
-  bg: '#f2d2d6',
-  ink: '#6b3038'
+  bg: '#3a5f8a',
+  ink: '#f2ece2',
+  lamp: '#e8593a',
+  beam: '#f2ece2',
+  variant: 'mushroom'
 }, {
-  bg: '#d9e6d3',
-  ink: '#3a4a34'
+  bg: '#4a0f1a',
+  ink: '#f2ece2',
+  lamp: '#f0a8c0',
+  beam: '#e0397a',
+  variant: 'arc'
 }, {
-  bg: '#d6e5f2',
-  ink: '#2a3f52'
+  bg: '#c9c48a',
+  ink: '#2b2438',
+  lamp: '#7a7a28',
+  beam: '#f2ece2',
+  variant: 'desk'
 }, {
-  bg: '#e4dbf2',
-  ink: '#453a5c'
+  bg: '#1f5c2e',
+  ink: '#f2ece2',
+  lamp: '#8a8228',
+  beam: '#f2ece2',
+  variant: 'floor'
 }, {
-  bg: '#f5e9bd',
-  ink: '#5f4c1a'
+  bg: '#f0a8c0',
+  ink: '#4a0f1a',
+  lamp: '#4a0f1a',
+  beam: '#f2ece2',
+  variant: 'globe'
 }];
-const pastelFor = title => PASTELS[hashString(title) % PASTELS.length];
+const lookFor = title => LOOKS[hashString(title) % LOOKS.length];
+const LampArt = ({
+  variant,
+  lamp,
+  beam
+}) => {
+  switch (variant) {
+    case 'pendant':
+      return /*#__PURE__*/React.createElement("svg", {
+        viewBox: "0 0 100 150",
+        className: "w-full h-full"
+      }, /*#__PURE__*/React.createElement("line", {
+        x1: "50",
+        y1: "8",
+        x2: "50",
+        y2: "44",
+        stroke: lamp,
+        strokeWidth: "1.5"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M33,44 L67,44 L74,60 L26,60 Z",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M22,60 L78,60 L92,132 L8,132 Z",
+        fill: beam,
+        opacity: "0.5"
+      }));
+    case 'mushroom':
+      return /*#__PURE__*/React.createElement("svg", {
+        viewBox: "0 0 100 150",
+        className: "w-full h-full"
+      }, /*#__PURE__*/React.createElement("ellipse", {
+        cx: "50",
+        cy: "46",
+        rx: "27",
+        ry: "15",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("rect", {
+        x: "43",
+        y: "46",
+        width: "14",
+        height: "52",
+        rx: "5",
+        fill: beam
+      }), /*#__PURE__*/React.createElement("ellipse", {
+        cx: "50",
+        cy: "101",
+        rx: "19",
+        ry: "6",
+        fill: beam
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "72",
+        y1: "42",
+        x2: "80",
+        y2: "52",
+        stroke: lamp,
+        strokeWidth: "1.5"
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "81",
+        cy: "55",
+        r: "2.5",
+        fill: lamp
+      }));
+    case 'arc':
+      return /*#__PURE__*/React.createElement("svg", {
+        viewBox: "0 0 100 150",
+        className: "w-full h-full"
+      }, /*#__PURE__*/React.createElement("ellipse", {
+        cx: "32",
+        cy: "136",
+        rx: "14",
+        ry: "4",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "32",
+        y1: "134",
+        x2: "32",
+        y2: "40",
+        stroke: lamp,
+        strokeWidth: "2"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M32,40 L68,24",
+        stroke: lamp,
+        strokeWidth: "2",
+        fill: "none"
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "32",
+        cy: "40",
+        r: "2.5",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "68",
+        cy: "24",
+        r: "2.5",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M58,24 L80,30 L68,42 Z",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M56,32 L82,32 L100,110 L38,110 Z",
+        fill: beam,
+        opacity: "0.45"
+      }));
+    case 'desk':
+      return /*#__PURE__*/React.createElement("svg", {
+        viewBox: "0 0 100 150",
+        className: "w-full h-full"
+      }, /*#__PURE__*/React.createElement("rect", {
+        x: "26",
+        y: "118",
+        width: "34",
+        height: "10",
+        rx: "4",
+        fill: beam
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "43",
+        y1: "118",
+        x2: "43",
+        y2: "70",
+        stroke: lamp,
+        strokeWidth: "2"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M43,70 L76,46",
+        stroke: lamp,
+        strokeWidth: "2",
+        fill: "none"
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "76",
+        cy: "46",
+        r: "2.5",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M60,46 A18,18 0 0 1 92,46 Z",
+        fill: lamp
+      }));
+    case 'floor':
+      return /*#__PURE__*/React.createElement("svg", {
+        viewBox: "0 0 100 150",
+        className: "w-full h-full"
+      }, /*#__PURE__*/React.createElement("ellipse", {
+        cx: "50",
+        cy: "140",
+        rx: "16",
+        ry: "4.5",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "50",
+        y1: "137",
+        x2: "50",
+        y2: "58",
+        stroke: lamp,
+        strokeWidth: "2"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M32,58 L50,44 L68,58 L50,66 Z",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M34,60 L66,60 L84,128 L16,128 Z",
+        fill: beam,
+        opacity: "0.4"
+      }));
+    case 'globe':
+    default:
+      return /*#__PURE__*/React.createElement("svg", {
+        viewBox: "0 0 100 150",
+        className: "w-full h-full"
+      }, /*#__PURE__*/React.createElement("rect", {
+        x: "38",
+        y: "108",
+        width: "24",
+        height: "8",
+        rx: "3",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: "50",
+        y1: "108",
+        x2: "50",
+        y2: "94",
+        stroke: lamp,
+        strokeWidth: "2"
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "50",
+        cy: "66",
+        r: "26",
+        fill: lamp
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: "41",
+        cy: "57",
+        r: "9",
+        fill: beam,
+        opacity: "0.85"
+      }));
+  }
+};
 const CoverFallback = ({
   title,
   author,
   pct
 }) => {
+  const look = lookFor(title);
   const {
     bg,
-    ink
-  } = pastelFor(title);
+    ink,
+    lamp,
+    beam
+  } = look;
   const chip = /*#__PURE__*/React.createElement("span", {
     className: "inline-flex items-center px-2.5 py-1 rounded-full font-mono text-[9px] uppercase tracking-wider",
     style: {
-      background: `${ink}17`,
+      background: `${ink}1c`,
       color: ink
     }
   }, pct > 0 ? `${pct.toFixed(0)}% read` : 'Unread');
   return /*#__PURE__*/React.createElement("div", {
-    className: "absolute inset-0 flex flex-col justify-between p-5 overflow-hidden",
+    className: "absolute inset-0 flex flex-col overflow-hidden",
     style: {
       background: bg
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "font-display font-semibold leading-none select-none",
+    className: "flex-1 flex items-center justify-center px-8 pt-6 pb-2",
     style: {
-      fontSize: '5rem',
-      color: ink,
-      opacity: 0.1,
-      marginLeft: '-0.05em'
+      maxHeight: '58%'
     }
-  }, (title || '?').trim().charAt(0).toUpperCase()), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-full h-full max-w-[110px]"
+  }, /*#__PURE__*/React.createElement(LampArt, {
+    variant: look.variant,
+    lamp: lamp,
+    beam: beam
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "p-5 pt-2"
+  }, /*#__PURE__*/React.createElement("h3", {
     className: "font-display font-semibold text-[1.05rem] leading-snug line-clamp-3",
     style: {
       color: ink
@@ -389,24 +618,109 @@ const CoverFallback = ({
     className: "text-[11.5px] mt-1 truncate",
     style: {
       color: ink,
-      opacity: 0.6
+      opacity: 0.65
     }
   }, author), pct > 0 && /*#__PURE__*/React.createElement("div", {
     className: "mt-3 h-[3px] w-full rounded-full overflow-hidden",
     style: {
-      background: `${ink}20`
+      background: `${ink}25`
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "h-full rounded-full",
     style: {
       width: `${pct}%`,
       background: ink,
-      opacity: 0.55
+      opacity: 0.6
     }
   })), /*#__PURE__*/React.createElement("div", {
     className: "mt-2.5"
   }, chip)));
 };
+
+// --- Reading themes: calm presets + a swatch grid for custom picks ---
+const READING_PRESETS = [{
+  id: 'night',
+  label: 'Night',
+  bg: '#211f30',
+  ink: '#e9e4f0',
+  accent: '#a893c9'
+}, {
+  id: 'paper',
+  label: 'Paper',
+  bg: '#f3ede0',
+  ink: '#3a3128',
+  accent: '#c9793a'
+}, {
+  id: 'sage',
+  label: 'Sage',
+  bg: '#e3e8dc',
+  ink: '#33402f',
+  accent: '#6b8a5a'
+}, {
+  id: 'dusk',
+  label: 'Dusk',
+  bg: '#e8dfe6',
+  ink: '#3a2b38',
+  accent: '#a8607e'
+}];
+const READING_EXTRAS = [{
+  id: 'ink',
+  bg: '#17161c',
+  ink: '#e7e3ef',
+  accent: '#8f7cc7'
+}, {
+  id: 'bluehour',
+  bg: '#28344a',
+  ink: '#e8ecf5',
+  accent: '#7ba0d6'
+}, {
+  id: 'clay',
+  bg: '#e7d4c1',
+  ink: '#4a2f1e',
+  accent: '#c9793a'
+}, {
+  id: 'moss',
+  bg: '#1f2e22',
+  ink: '#dfe8de',
+  accent: '#7fa66c'
+}, {
+  id: 'rosewood',
+  bg: '#3a1620',
+  ink: '#f0dfe2',
+  accent: '#d97a93'
+}, {
+  id: 'khaki',
+  bg: '#c9c48a',
+  ink: '#2b2438',
+  accent: '#7a7a28'
+}, {
+  id: 'seafoam',
+  bg: '#cfe4dc',
+  ink: '#1f3a30',
+  accent: '#3f8a72'
+}, {
+  id: 'blush',
+  bg: '#f0dbe0',
+  ink: '#4a2634',
+  accent: '#c65f7a'
+}];
+const READING_ALL = [...READING_PRESETS, ...READING_EXTRAS];
+const readingThemeTokens = t => ({
+  bg: t.bg,
+  ink: t.ink,
+  pivot: t.accent,
+  glow: t.accent,
+  surface: `${t.ink}12`,
+  line: `${t.ink}20`,
+  track: `${t.ink}18`,
+  muted: `${t.ink}90`,
+  chip: `${t.accent}22`,
+  chipText: t.accent,
+  playBg: t.accent,
+  playIcon: t.bg,
+  panel: t.bg
+});
+const chromeTheme = readingThemeTokens(READING_PRESETS[0]); // used for auth/loading screens
 
 // --- Supabase (cross-device sync) ---
 const supabaseClient = window.supabase.createClient('https://kumlmoecgnpkhgpxuopk.supabase.co', 'sb_publishable_qQZRlaTbMm3kEs5n2Fikfg_K5OaciqO');
@@ -521,7 +835,8 @@ function App() {
   const [themeIdx, setThemeIdx] = useState(0);
   const theme = THEMES[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
-  const [useCoverTheme, setUseCoverTheme] = useState(true);
+  const [readingThemeId, setReadingThemeId] = useState('night');
+  const [showThemePicker, setShowThemePicker] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [session, setSession] = useState(undefined); // undefined = checking, null = signed out
   const [authMode, setAuthMode] = useState('signIn'); // 'signIn' | 'signUp'
@@ -774,49 +1089,19 @@ function App() {
     });
   };
   const currentChapterIdx = activeBook ? activeBook.chapters?.findLastIndex(c => c.index <= wordIndex) ?? -1 : -1;
-  const lampTheme = {
-    bg: '#0c0a08',
-    ink: '#f4ead9',
-    pivot: '#f4c874',
-    glow: '#e8a33d',
-    surface: '#17130f',
-    line: 'rgba(232,163,61,0.14)',
-    track: 'rgba(244,234,217,0.12)',
-    muted: '#8a7d6a',
-    chip: 'rgba(232,163,61,0.1)',
-    chipText: '#f4c874',
-    playBg: '#e8a33d',
-    playIcon: '#0c0a08',
-    panel: '#141110'
-  };
-  const bookPastel = activeBook ? pastelFor(activeBook.title) : null;
-  const bookTheme = bookPastel ? {
-    bg: bookPastel.bg,
-    ink: bookPastel.ink,
-    pivot: bookPastel.ink,
-    glow: bookPastel.ink,
-    surface: `${bookPastel.ink}14`,
-    line: `${bookPastel.ink}22`,
-    track: `${bookPastel.ink}20`,
-    muted: `${bookPastel.ink}99`,
-    chip: `${bookPastel.ink}17`,
-    chipText: bookPastel.ink,
-    playBg: bookPastel.ink,
-    playIcon: bookPastel.bg,
-    panel: bookPastel.bg
-  } : lampTheme;
-  const readerTheme = useCoverTheme ? bookTheme : lampTheme;
+  const activeReadingTheme = READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0];
+  const readerTheme = readingThemeTokens(activeReadingTheme);
   if (session === undefined) {
     return /*#__PURE__*/React.createElement("div", {
       className: "flex items-center justify-center",
       style: {
         height: '100dvh',
-        background: lampTheme.bg
+        background: chromeTheme.bg
       }
     }, /*#__PURE__*/React.createElement("div", {
       className: "w-2 h-2 rounded-full glow",
       style: {
-        background: lampTheme.pivot
+        background: chromeTheme.pivot
       }
     }));
   }
@@ -825,7 +1110,7 @@ function App() {
       className: "flex flex-col items-center justify-center px-8",
       style: {
         height: '100dvh',
-        background: lampTheme.bg,
+        background: chromeTheme.bg,
         '--font-display': theme.display
       }
     }, /*#__PURE__*/React.createElement("div", {
@@ -837,12 +1122,12 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "w-2 h-2 rounded-full",
       style: {
-        background: lampTheme.pivot
+        background: chromeTheme.pivot
       }
     })), /*#__PURE__*/React.createElement("span", {
       className: "font-display italic text-lg tracking-tight",
       style: {
-        color: lampTheme.ink
+        color: chromeTheme.ink
       }
     }, "Lamplight")), /*#__PURE__*/React.createElement("form", {
       onSubmit: handleAuthSubmit,
@@ -855,8 +1140,8 @@ function App() {
       onChange: e => setAuthEmail(e.target.value),
       className: "w-full px-4 py-3 rounded-2xl text-sm bg-transparent outline-none",
       style: {
-        border: `1px solid ${lampTheme.line}`,
-        color: lampTheme.ink
+        border: `1px solid ${chromeTheme.line}`,
+        color: chromeTheme.ink
       }
     }), /*#__PURE__*/React.createElement("input", {
       type: "password",
@@ -867,26 +1152,26 @@ function App() {
       minLength: 6,
       className: "w-full px-4 py-3 rounded-2xl text-sm bg-transparent outline-none",
       style: {
-        border: `1px solid ${lampTheme.line}`,
-        color: lampTheme.ink
+        border: `1px solid ${chromeTheme.line}`,
+        color: chromeTheme.ink
       }
     }), authError && /*#__PURE__*/React.createElement("p", {
       className: "text-xs",
       style: {
-        color: '#d9737b'
+        color: '#e07d91'
       }
     }, authError), authNotice && /*#__PURE__*/React.createElement("p", {
       className: "text-xs",
       style: {
-        color: lampTheme.pivot
+        color: chromeTheme.pivot
       }
     }, authNotice), /*#__PURE__*/React.createElement("button", {
       type: "submit",
       disabled: authLoading,
       className: "w-full py-3 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50 mt-1",
       style: {
-        background: lampTheme.playBg,
-        color: lampTheme.playIcon
+        background: chromeTheme.playBg,
+        color: chromeTheme.playIcon
       }
     }, authLoading ? 'One moment…' : authMode === 'signUp' ? 'Create account' : 'Sign in')), /*#__PURE__*/React.createElement("button", {
       onClick: () => {
@@ -896,7 +1181,7 @@ function App() {
       },
       className: "w-full text-center text-xs font-mono mt-4",
       style: {
-        color: lampTheme.muted
+        color: chromeTheme.muted
       }
     }, authMode === 'signUp' ? 'Have an account? Sign in' : "New here? Create an account")));
   }
@@ -934,7 +1219,7 @@ function App() {
   }, activeBook.title)), /*#__PURE__*/React.createElement("button", {
     onClick: e => {
       e.stopPropagation();
-      setUseCoverTheme(v => !v);
+      setShowThemePicker(true);
     },
     className: "flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-[9px] font-mono uppercase tracking-wide shrink-0 transition-colors",
     style: {
@@ -946,7 +1231,7 @@ function App() {
     style: {
       background: readerTheme.pivot
     }
-  }), useCoverTheme ? 'Cover' : 'Lamp'), /*#__PURE__*/React.createElement("div", {
+  }), activeReadingTheme.label || 'Custom'), /*#__PURE__*/React.createElement("div", {
     className: "w-9 shrink-0"
   })), /*#__PURE__*/React.createElement("button", {
     onClick: e => {
@@ -991,7 +1276,7 @@ function App() {
       opacity: 0.6
     }
   }, "·"), (currentChapterIdx !== -1 ? currentChapterIdx : 0) + 1, "/", activeBook.chapters?.length || 1), /*#__PURE__*/React.createElement("div", {
-    className: "shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
+    className: "shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] mx-auto max-w-md w-full",
     onClick: e => e.stopPropagation()
   }, /*#__PURE__*/React.createElement("div", {
     className: "rounded-3xl px-4 pt-4 pb-3 flex flex-col gap-3 transition-colors",
@@ -1147,11 +1432,85 @@ function App() {
         color: readerTheme.muted
       }
     }, chap.title);
-  }))))) :
+  })))), showThemePicker && /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 z-50 flex flex-col justify-end"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1",
+    onClick: () => setShowThemePicker(false)
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-t-3xl flex flex-col transition-colors",
+    style: {
+      background: readerTheme.panel,
+      borderTop: `1px solid ${readerTheme.line}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-center pt-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-9 h-1 rounded-full",
+    style: {
+      background: readerTheme.line
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-4 flex justify-between items-center"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-display italic text-lg",
+    style: {
+      color: readerTheme.ink
+    }
+  }, "Reading theme"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowThemePicker(false),
+    className: "p-1",
+    style: {
+      color: readerTheme.muted
+    }
+  }, /*#__PURE__*/React.createElement(X, {
+    size: 18
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "px-5 pb-2 grid grid-cols-2 gap-2"
+  }, READING_PRESETS.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    onClick: () => {
+      setReadingThemeId(t.id);
+      setShowThemePicker(false);
+    },
+    className: "flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-colors",
+    style: {
+      background: t.id === readingThemeId ? `${readerTheme.ink}12` : 'transparent',
+      border: `1px solid ${t.id === readingThemeId ? readerTheme.chipText : readerTheme.line}`,
+      color: readerTheme.ink
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "w-4 h-4 rounded-full shrink-0",
+    style: {
+      background: t.bg,
+      border: `1px solid ${t.ink}40`
+    }
+  }), t.label))), /*#__PURE__*/React.createElement("div", {
+    className: "px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-mono uppercase tracking-wide mb-2.5",
+    style: {
+      color: readerTheme.muted
+    }
+  }, "More colors"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-8 gap-2.5"
+  }, READING_EXTRAS.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    onClick: () => {
+      setReadingThemeId(t.id);
+      setShowThemePicker(false);
+    },
+    "aria-label": t.id,
+    className: "w-full aspect-square rounded-full transition-transform active:scale-90",
+    style: {
+      background: t.bg,
+      border: t.id === readingThemeId ? `2px solid ${t.accent}` : `1px solid ${readerTheme.line}`
+    }
+  }))))))) :
   /*#__PURE__*/
   // ---------- LIBRARY (SHELF) ----------
   React.createElement("div", {
-    className: "h-full flex flex-col overflow-hidden"
+    className: "h-full flex flex-col overflow-hidden relative"
   }, /*#__PURE__*/React.createElement("nav", {
     className: "flex justify-between items-center px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-1 shrink-0"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1159,21 +1518,21 @@ function App() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "w-7 h-7 rounded-full glow flex items-center justify-center"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "w-2 h-2 rounded-full bg-[#f4c874]"
+    className: "w-2 h-2 rounded-full bg-[#f0ab3c]"
   })), /*#__PURE__*/React.createElement("span", {
-    className: "font-display italic text-lg tracking-tight text-[#f4ead9]"
+    className: "font-display italic text-lg tracking-tight text-[#f2ecdd]"
   }, "Lamplight")), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: cycleTheme,
     "aria-label": "Change reading font",
-    className: "flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full border border-[var(--line)] text-[#8a7d6a] active:text-[#f4ead9] transition-colors"
+    className: "flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full border border-[var(--line)] text-[#a89bc9] active:text-[#f2ecdd] transition-colors"
   }, /*#__PURE__*/React.createElement("span", {
     className: "font-display text-[13px] leading-none"
   }, theme.glyph), /*#__PURE__*/React.createElement("span", {
     className: "font-mono text-[9px] uppercase tracking-wide"
   }, theme.label)), /*#__PURE__*/React.createElement("span", {
-    className: "font-mono text-[10px] text-[#8a7d6a]"
+    className: "font-mono text-[10px] text-[#a89bc9]"
   }, books.length, " book", books.length !== 1 ? 's' : ''), /*#__PURE__*/React.createElement("input", {
     type: "file",
     accept: ".epub",
@@ -1184,20 +1543,20 @@ function App() {
     onClick: () => fileInputRef.current?.click(),
     disabled: isParsing || !window.ePub,
     "aria-label": "Add book",
-    className: "w-7 h-7 flex items-center justify-center rounded-full border border-[var(--line)] text-[#8a7d6a] active:text-[#f4ead9] transition-colors disabled:opacity-40"
+    className: "w-7 h-7 flex items-center justify-center rounded-full border border-[var(--line)] text-[#a89bc9] active:text-[#f2ecdd] transition-colors disabled:opacity-40"
   }, isParsing ? /*#__PURE__*/React.createElement("div", {
     className: "w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"
   }) : /*#__PURE__*/React.createElement(Plus, {
     size: 14
   })), /*#__PURE__*/React.createElement("button", {
     onClick: handleSignOut,
-    className: "font-mono text-[9px] uppercase tracking-wide text-[#8a7d6a]/60 active:text-[#8a7d6a] transition-colors pl-1"
+    className: "font-mono text-[9px] uppercase tracking-wide text-[#a89bc9]/60 active:text-[#a89bc9] transition-colors pl-1"
   }, "Sign out"))), /*#__PURE__*/React.createElement("div", {
     className: "px-5 pt-2 pb-3 shrink-0"
   }, /*#__PURE__*/React.createElement("h1", {
-    className: "font-display font-medium text-[1.6rem] leading-[1.15] text-[#f4ead9]"
+    className: "font-display font-medium text-[1.6rem] leading-[1.15] text-[#f2ecdd]"
   }, "Your shelf,", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
-    className: "italic text-[#e8a33d]"
+    className: "italic text-[#f0ab3c]"
   }, "lit for the night."))), /*#__PURE__*/React.createElement("div", {
     className: "flex-1 min-h-0 flex items-center overflow-hidden"
   }, books.length > 0 ? /*#__PURE__*/React.createElement("div", {
@@ -1211,20 +1570,30 @@ function App() {
     const pct = book.progress > 0 && book.words?.length > 0 ? book.progress / book.words.length * 100 : 0;
     const {
       ink
-    } = pastelFor(book.title);
+    } = lookFor(book.title);
     return /*#__PURE__*/React.createElement("div", {
       key: book.id,
       "data-card": true,
       onClick: () => openBook(book),
-      className: "card-slide relative shrink-0 aspect-[2/3] rounded-[22px] overflow-hidden active:scale-[0.97] transition-transform",
+      className: "card-slide relative shrink-0 aspect-[2/3] rounded-[10px] overflow-hidden active:scale-[0.97] transition-transform",
       style: {
         height: 'min(52vh, 380px)',
-        boxShadow: '0 22px 40px -22px rgba(0,0,0,0.65)'
+        boxShadow: '0 18px 34px -20px rgba(0,0,0,0.55)'
       }
     }, /*#__PURE__*/React.createElement(CoverFallback, {
       title: book.title,
       author: book.author,
       pct: pct
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "absolute left-0 top-0 bottom-0 w-2.5 pointer-events-none",
+      style: {
+        background: 'linear-gradient(90deg, rgba(0,0,0,0.32), rgba(0,0,0,0.04))'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "absolute right-0 top-1 bottom-1 w-[5px] rounded-r-[6px] pointer-events-none",
+      style: {
+        background: 'linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.32))'
+      }
     }), /*#__PURE__*/React.createElement("button", {
       onClick: e => handleDelete(e, book.id),
       className: "absolute top-3 right-3 p-1.5 rounded-full backdrop-blur-sm active:opacity-70 transition-opacity",
@@ -1241,13 +1610,13 @@ function App() {
     className: "p-5 rounded-2xl border border-dashed border-[var(--line)]"
   }, /*#__PURE__*/React.createElement(BookOpen, {
     size: 28,
-    className: "text-[#4a4234]"
+    className: "text-[#463f6e]"
   })), /*#__PURE__*/React.createElement("p", {
-    className: "text-sm text-[#8a7d6a] max-w-[220px]"
+    className: "text-sm text-[#a89bc9] max-w-[220px]"
   }, "No books on the shelf yet."), /*#__PURE__*/React.createElement("button", {
     onClick: () => fileInputRef.current?.click(),
     disabled: isParsing || !window.ePub,
-    className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--line)] text-xs text-[#8a7d6a] active:text-[#f4ead9] transition-colors disabled:opacity-40"
+    className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--line)] text-xs text-[#a89bc9] active:text-[#f2ecdd] transition-colors disabled:opacity-40"
   }, /*#__PURE__*/React.createElement(Plus, {
     size: 13
   }), " Add book"))), books.length > 1 && /*#__PURE__*/React.createElement("div", {
@@ -1255,7 +1624,7 @@ function App() {
   }, books.map((_, idx) => /*#__PURE__*/React.createElement("button", {
     key: idx,
     onClick: () => scrollToCard(idx),
-    className: `h-1.5 rounded-full transition-all ${idx === activeCardIndex ? 'w-4 bg-[#e8a33d]' : 'w-1.5 bg-[rgba(244,234,217,0.15)]'}`
+    className: `h-1.5 rounded-full transition-all ${idx === activeCardIndex ? 'w-4 bg-[#f0ab3c]' : 'w-1.5 bg-[rgba(242,236,221,0.15)]'}`
   })))));
 }
 const root = ReactDOM.createRoot(document.getElementById('root'));
