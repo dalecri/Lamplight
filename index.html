@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Dancing+Script:wght@500;700&family=Space+Grotesk:wght@500;600;700;800&family=Outfit:wght@200;300;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Cinzel+Decorative:wght@400;700;900&family=Instrument+Serif:ital@0;1&family=Playfair+Display:wght@400;500;600;700&family=Abril+Fatface&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -623,8 +623,29 @@ const TITLE_COLOR_OVERRIDES = {
   },
   // deep darker pink font
   'The Last Good Winter': {
-    ink: '#2d0a4a'
-  } // much deeper purple font
+    bg: '#c0b396',
+    ink: '#5528ad'
+  },
+  // tan cover, purple font — skewed parallelogram jacket look
+  'Concrete Notions': {
+    bg: '#f7e04b',
+    ink: '#0d0d0d'
+  },
+  // vintage editorial: yellow cover, near-black font
+  'Static': {
+    bg: '#e8d9b5',
+    ink: '#ff6a00'
+  },
+  // warm cream cover, bright orange thin editorial font
+  'Neue Grid': {
+    bg: '#2e1d10',
+    ink: '#ffffff'
+  },
+  // dark deep brown cover with paper texture, white serif
+  'The Great Wide Open': {
+    bg: '#2a1e8f',
+    ink: '#ffffff'
+  } // rich indigo blue cover, white font
 };
 
 // Using the same palette for both day and night for now, per feedback — no separate night set yet.
@@ -641,13 +662,17 @@ const lookFor = title => {
 };
 
 // Deterministic per-title spine proportions, so a shelf of books looks organically uneven
-const spineHeightPct = title => 62 + hashString(`${title}h`) % 22; // 62-83%, leaves headroom like the reference
+const spineHeightPct = title => {
+  const base = 62 + hashString(`${title}h`) % 22; // 62-83%, leaves headroom like the reference
+  return title.trim() === 'The Last Good Winter' ? Math.min(96, base + 14) : base;
+};
 const spineTilt = () => 0; // tilt removed per feedback — books stand straight
-const SPINE_STYLES = ['plain', 'dotted', 'checkerboard', 'bigletter', 'badge', 'diagonalfine', 'starry', 'elongated', 'centered', 'pixelcute', 'grid'];
+const SPINE_STYLES = ['plain', 'dotted', 'brutalist', 'bigletter', 'badge', 'diagonalfine', 'starry', 'elongated', 'centered', 'pixelcute', 'grid', 'swiss'];
 const spineStyle = (title, index) => {
   const t = title.trim();
   if (t === 'Static') return 'grid';
-  if (t === 'Nocturne' || t === 'Amber') return 'plain';
+  if (t === 'Nocturne' || t === 'Amber' || t === 'Salt') return 'plain';
+  if (t === 'The Longest Way Home Through Winter') return 'dotted';
   return SPINE_STYLES[index % SPINE_STYLES.length];
 };
 const isLightColor = hex => {
@@ -657,7 +682,7 @@ const isLightColor = hex => {
     b = parseInt(c.substr(4, 2), 16);
   return 0.299 * r + 0.587 * g + 0.114 * b > 150;
 };
-const SPINE_FONTS = ["'Fraunces', serif", "'IBM Plex Mono', monospace", "'Inter', sans-serif"];
+const SPINE_FONTS = ["'Fraunces', serif", "'IBM Plex Mono', monospace", "'Inter', sans-serif", "'Space Grotesk', sans-serif", "'Outfit', sans-serif", "'Plus Jakarta Sans', sans-serif"];
 const spineFont = title => SPINE_FONTS[hashString(`${title}font`) % SPINE_FONTS.length];
 const darkenColor = (hex, amt) => {
   const c = hex.replace('#', '');
@@ -669,8 +694,9 @@ const darkenColor = (hex, amt) => {
 const spineWidthPx = (title, index) => {
   const base = 58 + hashString(`${title}w`) % 20; // 58-77
   const style = spineStyle(title, index);
-  const funkyBonus = style === 'dotted' ? 18 : style === 'bigletter' ? 30 : style === 'checkerboard' ? 10 : style === 'badge' ? 10 : style === 'elongated' ? 8 : style === 'pixelcute' ? 14 : style === 'grid' ? 10 : 0;
-  return (title.length > 20 ? base + 24 : base) + funkyBonus; // long titles + funky styles get extra width
+  const funkyBonus = style === 'dotted' ? 18 : style === 'bigletter' ? 30 : style === 'brutalist' ? 14 : style === 'badge' ? 10 : style === 'elongated' ? 8 : style === 'pixelcute' ? 14 : style === 'grid' ? 10 : style === 'swiss' ? 6 : 0;
+  const titleBonus = title.trim() === 'Static' ? 22 : 0;
+  return (title.length > 20 ? base + 24 : base) + funkyBonus + titleBonus; // long titles + funky styles get extra width
 };
 const LampArt = ({
   variant,
@@ -1541,6 +1567,16 @@ const PLACEHOLDER_BOOKS = [{
   author: 'P. Anand',
   wordCount: 400,
   progressPct: 55
+}, {
+  title: 'Concrete Notions',
+  author: 'H. Ostrom',
+  wordCount: 360,
+  progressPct: 30
+}, {
+  title: 'Neue Grid',
+  author: 'F. Lindqvist',
+  wordCount: 340,
+  progressPct: 0
 }].map((b, i) => {
   const words = makeDemoWords(b.wordCount);
   return {
@@ -3049,22 +3085,26 @@ function App() {
     },
     onScroll: () => setActiveSpineId(null)
   }, books.map((book, idx) => {
+    const style = spineStyle(book.title, idx);
     const {
       bg,
       ink
-    } = lookFor(book.title, isNight);
+    } = style === 'brutalist' ? {
+      bg: '#eab308',
+      ink: '#0f172a'
+    } : lookFor(book.title, isNight);
     const pct = book.progress > 0 && book.words?.length > 0 ? book.progress / book.words.length * 100 : 0;
     const filledDots = pct <= 0 ? 0 : pct >= 97 ? 3 : Math.max(1, Math.round(pct / 33));
-    const style = spineStyle(book.title, idx);
     const mobileLengthPx = (Math.round(spineHeightPct(book.title) / 100 * 300) + 20) * mobileBookWidthScale; // approximates the same proportions, rotated
+    const effectiveWidthPx = book.title.trim() === 'The Last Good Winter' ? spineWidthPx(book.title, idx) * 1.35 : spineWidthPx(book.title, idx);
     return /*#__PURE__*/React.createElement("div", {
       key: book.id,
       className: `spine-mobile-wrap shrink-0 ${mobileStackView ? 'stack-mode' : ''}`,
       style: {
-        '--sw': `${spineWidthPx(book.title, idx)}px`,
+        '--sw': `${effectiveWidthPx}px`,
         '--sh': `${spineHeightPct(book.title)}%`,
         '--ml': `${mobileLengthPx}px`,
-        '--swm': `${spineWidthPx(book.title, idx) * mobileBookScale}px`
+        '--swm': `${effectiveWidthPx * mobileBookScale}px`
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: () => {
@@ -3081,11 +3121,12 @@ function App() {
       className: "spine-lift group relative shrink-0 rounded-t-[3px] rounded-b-[1px]",
       style: {
         background: bg,
-        width: spineWidthPx(book.title, idx),
+        width: effectiveWidthPx,
         height: '100%',
         '--tilt': `${spineTilt(book.title)}deg`,
         transformOrigin: 'bottom center',
-        boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
+        boxShadow: style === 'brutalist' ? '0 10px 25px rgba(0,0,0,0.4)' : book.title.trim() === 'The Last Good Winter' ? '0 10px 20px rgba(0,0,0,0.4)' : '0 3px 8px rgba(0,0,0,0.3)',
+        border: style === 'brutalist' ? '2px solid #000000' : undefined
       },
       "aria-label": book.title
     }, /*#__PURE__*/React.createElement("div", {
@@ -3111,21 +3152,13 @@ function App() {
         backgroundSize: '9px 9px',
         backgroundPosition: '4px 4px'
       }
-    }), style === 'checkerboard' && /*#__PURE__*/React.createElement("div", {
-      className: "absolute inset-0",
-      style: {
-        backgroundImage: `linear-gradient(45deg, #1f5c2e 25%, transparent 25%), linear-gradient(-45deg, #1f5c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1f5c2e 75%), linear-gradient(-45deg, transparent 75%, #1f5c2e 75%)`,
-        backgroundColor: '#8fd99a',
-        backgroundSize: '10px 10px',
-        backgroundPosition: '0 0, 0 5px, 5px -5px, -5px 0px'
-      }
     }), style === 'grid' && /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-0",
       style: {
         backgroundImage: `linear-gradient(${ink}40 1px, transparent 1px), linear-gradient(90deg, ${ink}40 1px, transparent 1px)`,
         backgroundSize: '10px 10px'
       }
-    }), style === 'diagonalfine' && /*#__PURE__*/React.createElement("div", {
+    }), (style === 'diagonalfine' && book.title.trim() !== 'The Unfinished Garden' || book.title.trim() === 'The Great Wide Open') && /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-0",
       style: {
         backgroundImage: `repeating-linear-gradient(45deg, ${ink}55 0px, ${ink}55 1.5px, transparent 1.5px, transparent 6px)`
@@ -3160,7 +3193,76 @@ function App() {
         height: 4,
         background: darkenColor(bg, 40)
       }
-    }), style === 'bigletter' ? /*#__PURE__*/React.createElement("div", {
+    }), style === 'swiss' ? book.title.trim() === 'Neue Grid' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-0",
+      style: {
+        backgroundImage: `radial-gradient(rgba(255,255,255,0.08) 0.5px, transparent 0.5px), radial-gradient(rgba(0,0,0,0.15) 0.5px, transparent 0.5px)`,
+        backgroundSize: '3px 3px, 4px 4px',
+        backgroundPosition: '0 0, 1.5px 2px'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex flex-col items-center justify-between",
+      style: {
+        top: 12,
+        bottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'Abril Fatface', serif",
+        fontSize: 30,
+        color: '#d9b98a'
+      }
+    }, "!"), book.title.replace(/\s+/g, '').split('').map((ch, i) => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      className: "uppercase",
+      style: {
+        fontFamily: "'Abril Fatface', serif",
+        fontSize: 24,
+        color: '#d9b98a',
+        lineHeight: 1
+      }
+    }, ch)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'Abril Fatface', serif",
+        fontSize: 30,
+        color: '#d9b98a'
+      }
+    }, "!"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      className: "absolute",
+      style: {
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 6,
+        background: ink
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex items-center justify-center overflow-hidden",
+      style: {
+        top: 16,
+        bottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-bold uppercase",
+      style: {
+        fontFamily: hashString(`${book.title}sw`) % 2 === 0 ? "'Space Grotesk', sans-serif" : "'Outfit', sans-serif",
+        fontSize: 16,
+        color: ink,
+        writingMode: 'vertical-rl',
+        letterSpacing: '-0.01em',
+        display: 'block',
+        maxHeight: '100%'
+      }
+    }, book.title)), /*#__PURE__*/React.createElement("div", {
+      className: "absolute",
+      style: {
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 6,
+        background: ink
+      }
+    })) : style === 'bigletter' ? /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-x-0 flex items-center justify-center",
       style: {
         top: 20,
@@ -3221,33 +3323,24 @@ function App() {
         width: 20,
         display: 'block'
       }
-    }, book.title) : style === 'pixelcute' ? book.title.trim() === 'The Last Good Winter' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelStar, {
-      className: "absolute -translate-x-1/2 icon-upright",
-      style: {
-        top: 22,
-        left: '50%',
-        width: 26,
-        height: 26
-      },
-      color: "#F9CD39"
-    }), /*#__PURE__*/React.createElement("div", {
+    }, book.title) : style === 'pixelcute' ? book.title.trim() === 'The Last Good Winter' ? /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-x-0 flex items-center justify-center",
       style: {
-        top: 56,
-        bottom: 8
+        top: 4,
+        bottom: 4
       }
     }, /*#__PURE__*/React.createElement("span", {
-      className: "font-bold overflow-hidden",
+      className: "font-extrabold uppercase",
       style: {
         color: ink,
-        fontFamily: spineFont(book.title),
+        fontFamily: "'Space Grotesk', 'Plus Jakarta Sans', sans-serif",
         writingMode: 'vertical-rl',
-        letterSpacing: '0.015em',
-        fontSize: 16,
+        letterSpacing: '0.01em',
+        fontSize: 22,
         maxHeight: '100%',
         display: 'block'
       }
-    }, book.title))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
+    }, book.title)) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 16 14",
       width: "30",
       height: "26",
@@ -3312,13 +3405,30 @@ function App() {
         width: 20,
         display: 'block'
       }
+    }, book.title)) : style === 'brutalist' ? /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex items-center justify-center overflow-hidden",
+      style: {
+        top: 12,
+        bottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "uppercase",
+      style: {
+        fontFamily: "'Syne', 'Space Grotesk', sans-serif",
+        fontWeight: 800,
+        fontSize: 18,
+        letterSpacing: '0.01em',
+        color: ink,
+        writingMode: 'vertical-rl',
+        display: 'block',
+        maxHeight: '100%'
+      }
     }, book.title)) : style === 'dotted' ? /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-x-0 flex items-center justify-center",
       style: {
         top: '48%',
         height: 34,
-        background: `${ink}cc`,
-        transform: book.title.trim() === 'Salt' ? 'rotate(90deg)' : 'none'
+        background: `${ink}cc`
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "font-display font-bold uppercase whitespace-nowrap overflow-hidden",
@@ -3326,8 +3436,8 @@ function App() {
         color: bg,
         maxWidth: '90%',
         display: 'inline-block',
-        fontSize: book.title.trim() === 'Salt' ? 15 : 12,
-        letterSpacing: book.title.trim() === 'Salt' ? '0.32em' : '0.05em'
+        fontSize: 12,
+        letterSpacing: '0.05em'
       }
     }, book.title)) : (() => {
       const t = book.title.trim();
@@ -3335,7 +3445,10 @@ function App() {
       const isAmber = t === 'Amber';
       const isNocturne = t === 'Nocturne';
       const isGreatWide = t === 'The Great Wide Open';
-      const isCheckerboard = style === 'checkerboard';
+      const isConcrete = t === 'Concrete Notions';
+      const isStatic = t === 'Static';
+      const isSalt = t === 'Salt';
+      const VINTAGE_SERIFS = ["'Cinzel Decorative', serif", "'Instrument Serif', serif", "'Playfair Display', serif"];
       return /*#__PURE__*/React.createElement("div", {
         className: "absolute inset-x-0 flex items-center justify-center",
         style: {
@@ -3345,16 +3458,17 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "font-bold overflow-hidden",
         style: {
-          fontFamily: isGarden || isAmber ? "'Fraunces', serif" : spineFont(book.title),
-          fontSize: isGarden ? 24 : isAmber ? 30 : isNocturne ? 28 : 17,
-          textTransform: isGarden ? 'uppercase' : 'none',
+          fontFamily: isConcrete ? VINTAGE_SERIFS[hashString(`${t}vs`) % VINTAGE_SERIFS.length] : isStatic ? "'Outfit', sans-serif" : isSalt ? "'Fraunces', serif" : isGarden || isAmber ? "'Fraunces', serif" : spineFont(book.title),
+          fontWeight: isConcrete ? 400 : isStatic ? 200 : undefined,
+          fontSize: isGarden ? 24 : isAmber ? 30 : isNocturne ? 28 : isConcrete ? 19 : isStatic ? 34 : isSalt ? 23 : 17,
+          textTransform: isGarden || isConcrete || isSalt ? 'uppercase' : 'none',
           fontStyle: isGarden ? 'italic' : 'normal',
-          letterSpacing: isNocturne ? '0.35em' : '0.015em',
-          color: isAmber ? '#000000' : isCheckerboard ? '#ffffff' : ink,
-          textDecoration: isGreatWide ? 'underline' : 'none',
+          letterSpacing: isNocturne ? '0.35em' : isConcrete ? '0.08em' : isStatic ? '0.28em' : isSalt ? '0.32em' : '0.015em',
+          color: isAmber ? '#000000' : ink,
+          textDecoration: 'none',
           textDecorationStyle: 'solid',
-          WebkitTextStroke: isCheckerboard ? '2px #000000' : 'none',
-          textShadow: isCheckerboard ? '1.5px 0 0 #000, -1.5px 0 0 #000, 0 1.5px 0 #000, 0 -1.5px 0 #000, 1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000' : 'none',
+          WebkitTextStroke: isStatic ? '0.5px #7a2e00' : 'none',
+          textShadow: isStatic ? '0 1px 2px rgba(0,0,0,0.25)' : 'none',
           paintOrder: 'stroke fill',
           writingMode: 'vertical-rl',
           maxHeight: '100%',
