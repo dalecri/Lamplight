@@ -66,6 +66,33 @@
       .spine-lift:hover { transform: rotate(var(--tilt, 0deg)) translateY(-10px); }
     }
 
+    /* Mobile: the exact same spine, physically rotated 90deg so books lie flat and stack upward like a pile */
+    .spine-mobile-wrap {
+      position: relative;
+      width: var(--sw);
+      height: var(--sh);
+    }
+    @media (max-width: 639px) {
+      .spine-mobile-wrap {
+        width: var(--ml) !important;
+        height: var(--swm) !important;
+      }
+      .spine-mobile-wrap .spine-lift {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        width: var(--swm) !important;
+        height: var(--ml) !important;
+        transform: translate(-50%, -50%) rotate(-90deg) !important;
+        transform-origin: center !important;
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .spine-mobile-wrap .spine-lift:hover {
+          transform: translate(-50%, -50%) rotate(-90deg) translateY(-10px) !important;
+        }
+      }
+    }
+
     /* Normal reading mode: one page's worth of text at a time, width scales with screen size */
     .reading-page { width: 100%; max-width: 640px; }
     @media (min-width: 768px) {
@@ -1530,6 +1557,8 @@ function App() {
   const [activeSpineId, setActiveSpineId] = useState(null); // touch devices: tap once to preview, tap again to open
   const supportsHover = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   const [barHeight, setBarHeight] = useState(14); // px height of the main shelf bar line
+  const [mobileBookScale, setMobileBookScale] = useState(1); // scales every book's height % on mobile's stacked pile
+  const [mobileBookWidthScale, setMobileBookWidthScale] = useState(1.4); // scales every book's width (length) on mobile's stacked pile
   const [showShelfControls, setShowShelfControls] = useState(false);
   const theme = THEMES[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
@@ -2911,7 +2940,7 @@ function App() {
       transformOrigin: 'center center'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex-1 min-h-0 overflow-x-auto no-scrollbar flex items-end gap-0.5 px-10",
+    className: "flex-1 min-h-0 overflow-y-auto sm:overflow-y-visible sm:overflow-x-auto no-scrollbar flex flex-col sm:flex-row items-center sm:items-end gap-0.5 px-4 sm:px-10",
     style: {
       WebkitOverflowScrolling: 'touch'
     },
@@ -2924,8 +2953,17 @@ function App() {
     const pct = book.progress > 0 && book.words?.length > 0 ? book.progress / book.words.length * 100 : 0;
     const filledDots = pct <= 0 ? 0 : pct >= 97 ? 3 : Math.max(1, Math.round(pct / 33));
     const style = spineStyle(book.title, idx);
-    return /*#__PURE__*/React.createElement("button", {
+    const mobileLengthPx = (Math.round(spineHeightPct(book.title) / 100 * 300) + 20) * mobileBookWidthScale; // approximates the same proportions, rotated
+    return /*#__PURE__*/React.createElement("div", {
       key: book.id,
+      className: "spine-mobile-wrap shrink-0",
+      style: {
+        '--sw': `${spineWidthPx(book.title, idx)}px`,
+        '--sh': `${spineHeightPct(book.title)}%`,
+        '--ml': `${mobileLengthPx}px`,
+        '--swm': `${spineWidthPx(book.title, idx) * mobileBookScale}px`
+      }
+    }, /*#__PURE__*/React.createElement("button", {
       onClick: () => {
         if (!supportsHover) {
           if (activeSpineId === book.id) {
@@ -2941,7 +2979,7 @@ function App() {
       style: {
         background: bg,
         width: spineWidthPx(book.title, idx),
-        height: `${spineHeightPct(book.title)}%`,
+        height: '100%',
         '--tilt': `${spineTilt(book.title)}deg`,
         transformOrigin: 'bottom center',
         boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
@@ -3239,7 +3277,7 @@ function App() {
       style: {
         color: ink
       }
-    })));
+    }))));
   })), /*#__PURE__*/React.createElement("div", {
     className: "shrink-0 relative mx-auto",
     style: {
@@ -3338,6 +3376,26 @@ function App() {
     step: 1,
     value: barHeight,
     onChange: e => setBarHeight(Number(e.target.value)),
+    className: "w-full cursor-pointer"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-[10px] font-mono uppercase tracking-wide mb-1.5 text-[#a89bc9]"
+  }, /*#__PURE__*/React.createElement("span", null, "Book height (mobile pile)"), /*#__PURE__*/React.createElement("span", null, Math.round(mobileBookScale * 100), "%")), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: 0.5,
+    max: 2,
+    step: 0.05,
+    value: mobileBookScale,
+    onChange: e => setMobileBookScale(Number(e.target.value)),
+    className: "w-full cursor-pointer"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-[10px] font-mono uppercase tracking-wide mb-1.5 text-[#a89bc9]"
+  }, /*#__PURE__*/React.createElement("span", null, "Book width (mobile pile)"), /*#__PURE__*/React.createElement("span", null, Math.round(mobileBookWidthScale * 100), "%")), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: 0.5,
+    max: 1.6,
+    step: 0.05,
+    value: mobileBookWidthScale,
+    onChange: e => setMobileBookWidthScale(Number(e.target.value)),
     className: "w-full cursor-pointer"
   })))))));
 }
