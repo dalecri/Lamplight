@@ -540,10 +540,10 @@ const TITLE_COLOR_OVERRIDES = {
   },
   // pure black font, keep its own background
   'Glass Houses': {
-    bg: '#8a1f0a',
+    bg: '#a8271a',
     ink: '#ffffff'
   },
-  // deep blood orange, white font
+  // wine-deep red-orange, white font
   'Salt': {
     ink: '#5c0d33'
   } // deep darker pink font (+ badge dot to match)
@@ -2989,15 +2989,6 @@ function App() {
         height: 4,
         background: darkenColor(bg, 40)
       }
-    }), book.title.trim() === 'Salt' && /*#__PURE__*/React.createElement("div", {
-      className: "absolute rounded-full",
-      style: {
-        top: 10,
-        right: 10,
-        width: 12,
-        height: 12,
-        background: '#5c0d33'
-      }
     }), style === 'bigletter' ? /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-x-0 flex items-center justify-center",
       style: {
@@ -3017,9 +3008,9 @@ function App() {
         bottom: 8
       }
     }, /*#__PURE__*/React.createElement("span", {
-      className: "font-display font-normal leading-none",
+      className: "font-display font-black leading-none",
       style: {
-        fontSize: 34 + hashString(`${book.title}fs`) % 12,
+        fontSize: 38 + hashString(`${book.title}fs`) % 12,
         color: ink,
         transform: `scaleY(${4.2 + hashString(`${book.title}sy`) % 27 / 10})`,
         transformOrigin: 'center'
@@ -3185,6 +3176,7 @@ function App() {
           fontStyle: isGarden ? 'italic' : 'normal',
           letterSpacing: isNocturne ? '0.35em' : '0.015em',
           color: isAmber ? '#000000' : ink,
+          textDecoration: !isGarden && !isAmber && !isNocturne ? 'underline' : 'none',
           writingMode: 'vertical-rl',
           maxHeight: '100%',
           display: 'block'
