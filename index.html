@@ -91,6 +91,10 @@
           transform: translate(-50%, -50%) rotate(-90deg) translateY(-10px) !important;
         }
       }
+      /* Icons (trash, decorative pixel icons) counter-rotate so they read upright despite the spine itself being rotated */
+      .spine-mobile-wrap .icon-upright {
+        --tw-rotate: 90deg !important;
+      }
     }
 
     /* Normal reading mode: one page's worth of text at a time, width scales with screen size */
@@ -3119,11 +3123,10 @@ function App() {
         display: 'block'
       }
     }, book.title) : style === 'pixelcute' ? book.title.trim() === 'The Last Good Winter' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelStar, {
-      className: "absolute",
+      className: "absolute -translate-x-1/2 icon-upright",
       style: {
         top: 22,
         left: '50%',
-        transform: 'translateX(-50%)',
         width: 26,
         height: 26
       },
@@ -3149,11 +3152,10 @@ function App() {
       viewBox: "0 0 16 14",
       width: "30",
       height: "26",
-      className: "absolute",
+      className: "absolute -translate-x-1/2 icon-upright",
       style: {
         top: 24,
-        left: '50%',
-        transform: 'translateX(-50%)'
+        left: '50%'
       }
     }, /*#__PURE__*/React.createElement("g", {
       fill: ink
@@ -3267,7 +3269,7 @@ function App() {
       },
       role: "button",
       tabIndex: 0,
-      className: "absolute bottom-2 left-1/2 -translate-x-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer",
+      className: "absolute bottom-2 left-1/2 -translate-x-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer icon-upright",
       style: {
         background: `${ink}22`
       },
