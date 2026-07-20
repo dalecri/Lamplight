@@ -1527,6 +1527,8 @@ function App() {
   const [shelfScale, setShelfScale] = useState(0.8);
   const [shelfWidthScale, setShelfWidthScale] = useState(1);
   const [barWidthPct, setBarWidthPct] = useState(94); // % width of the shelf bar itself
+  const [activeSpineId, setActiveSpineId] = useState(null); // touch devices: tap once to preview, tap again to open
+  const supportsHover = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   const [barHeight, setBarHeight] = useState(14); // px height of the main shelf bar line
   const [showShelfControls, setShowShelfControls] = useState(false);
   const theme = THEMES[themeIdx];
@@ -1811,6 +1813,7 @@ function App() {
     setShowControls(true);
     setShowSpeed(false);
     setReadMode('rsvp');
+    setActiveSpineId(null);
   };
   const closeBook = async () => {
     if (activeBook) {
@@ -2911,7 +2914,8 @@ function App() {
     className: "flex-1 min-h-0 overflow-x-auto no-scrollbar flex items-end gap-0.5 px-10",
     style: {
       WebkitOverflowScrolling: 'touch'
-    }
+    },
+    onScroll: () => setActiveSpineId(null)
   }, books.map((book, idx) => {
     const {
       bg,
@@ -2922,7 +2926,17 @@ function App() {
     const style = spineStyle(book.title, idx);
     return /*#__PURE__*/React.createElement("button", {
       key: book.id,
-      onClick: () => openBook(book),
+      onClick: () => {
+        if (!supportsHover) {
+          if (activeSpineId === book.id) {
+            openBook(book);
+          } else {
+            setActiveSpineId(book.id);
+          }
+        } else {
+          openBook(book);
+        }
+      },
       className: "spine-lift group relative shrink-0 rounded-t-[3px] rounded-b-[1px]",
       style: {
         background: bg,
@@ -2938,7 +2952,18 @@ function App() {
       style: {
         background: 'rgba(255,255,255,0.15)'
       }
-    }), style === 'dotted' && /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "absolute top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap flex items-center justify-center",
+      style: {
+        background: 'rgba(20,18,30,0.85)',
+        opacity: activeSpineId === book.id ? 1 : undefined
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-mono text-[9px] font-semibold text-center leading-none",
+      style: {
+        color: '#f2ecdd'
+      }
+    }, pct > 0 ? `${Math.round(pct)}%` : 'Unread')), style === 'dotted' && /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-0",
       style: {
         backgroundImage: `radial-gradient(${ink}45 1.5px, transparent 1.5px)`,
@@ -3157,14 +3182,13 @@ function App() {
         transform: book.title.trim() === 'Salt' ? 'rotate(90deg)' : 'none'
       }
     }, /*#__PURE__*/React.createElement("span", {
-      className: book.title.trim() === 'Salt' ? 'whitespace-nowrap overflow-hidden' : 'font-display text-[12px] font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden',
+      className: "font-display font-bold uppercase whitespace-nowrap overflow-hidden",
       style: {
         color: bg,
         maxWidth: '90%',
         display: 'inline-block',
-        fontFamily: book.title.trim() === 'Salt' ? "'Dancing Script', cursive" : undefined,
-        fontSize: book.title.trim() === 'Salt' ? 22 : undefined,
-        fontWeight: book.title.trim() === 'Salt' ? 700 : undefined
+        fontSize: book.title.trim() === 'Salt' ? 15 : 12,
+        letterSpacing: book.title.trim() === 'Salt' ? '0.32em' : '0.05em'
       }
     }, book.title)) : (() => {
       const t = book.title.trim();
@@ -3190,7 +3214,8 @@ function App() {
           color: isAmber ? '#000000' : isCheckerboard ? '#ffffff' : ink,
           textDecoration: isGreatWide ? 'underline' : 'none',
           textDecorationStyle: 'solid',
-          WebkitTextStroke: isCheckerboard ? '1px #1f5c2e' : 'none',
+          WebkitTextStroke: isCheckerboard ? '2px #000000' : 'none',
+          textShadow: isCheckerboard ? '1.5px 0 0 #000, -1.5px 0 0 #000, 0 1.5px 0 #000, 0 -1.5px 0 #000, 1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000' : 'none',
           paintOrder: 'stroke fill',
           writingMode: 'vertical-rl',
           maxHeight: '100%',
