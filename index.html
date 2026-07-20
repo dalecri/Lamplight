@@ -73,11 +73,11 @@
       height: var(--sh);
     }
     @media (max-width: 639px) {
-      .spine-mobile-wrap {
+      .spine-mobile-wrap.stack-mode {
         width: var(--ml) !important;
         height: var(--swm) !important;
       }
-      .spine-mobile-wrap .spine-lift {
+      .spine-mobile-wrap.stack-mode .spine-lift {
         position: absolute !important;
         top: 50% !important;
         left: 50% !important;
@@ -87,12 +87,12 @@
         transform-origin: center !important;
       }
       @media (hover: hover) and (pointer: fine) {
-        .spine-mobile-wrap .spine-lift:hover {
+        .spine-mobile-wrap.stack-mode .spine-lift:hover {
           transform: translate(-50%, -50%) rotate(-90deg) translateY(-10px) !important;
         }
       }
       /* Icons (trash, decorative pixel icons) counter-rotate so they read upright despite the spine itself being rotated */
-      .spine-mobile-wrap .icon-upright {
+      .spine-mobile-wrap.stack-mode .icon-upright {
         --tw-rotate: 90deg !important;
       }
     }
@@ -1563,6 +1563,7 @@ function App() {
   const [barHeight, setBarHeight] = useState(14); // px height of the main shelf bar line
   const [mobileBookScale, setMobileBookScale] = useState(1); // scales every book's height % on mobile's stacked pile
   const [mobileBookWidthScale, setMobileBookWidthScale] = useState(1.4); // scales every book's width (length) on mobile's stacked pile
+  const [mobileStackView, setMobileStackView] = useState(true); // lets mobile users opt back into the normal side-by-side shelf
   const [showShelfControls, setShowShelfControls] = useState(false);
   const theme = THEMES[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
@@ -2944,7 +2945,7 @@ function App() {
       transformOrigin: 'center center'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex-1 min-h-0 overflow-y-auto sm:overflow-y-visible sm:overflow-x-auto no-scrollbar flex flex-col sm:flex-row items-center sm:items-end gap-0.5 px-4 sm:px-10",
+    className: mobileStackView ? "flex-1 min-h-0 overflow-y-auto sm:overflow-y-visible sm:overflow-x-auto no-scrollbar flex flex-col sm:flex-row justify-end sm:justify-start items-center sm:items-end gap-0.5 px-4 sm:px-10" : "flex-1 min-h-0 overflow-x-auto no-scrollbar flex flex-row items-end gap-0.5 px-4 sm:px-10",
     style: {
       WebkitOverflowScrolling: 'touch'
     },
@@ -2960,7 +2961,7 @@ function App() {
     const mobileLengthPx = (Math.round(spineHeightPct(book.title) / 100 * 300) + 20) * mobileBookWidthScale; // approximates the same proportions, rotated
     return /*#__PURE__*/React.createElement("div", {
       key: book.id,
-      className: "spine-mobile-wrap shrink-0",
+      className: `spine-mobile-wrap shrink-0 ${mobileStackView ? 'stack-mode' : ''}`,
       style: {
         '--sw': `${spineWidthPx(book.title, idx)}px`,
         '--sh': `${spineHeightPct(book.title)}%`,
@@ -3399,7 +3400,23 @@ function App() {
     value: mobileBookWidthScale,
     onChange: e => setMobileBookWidthScale(Number(e.target.value)),
     className: "w-full cursor-pointer"
-  })))))));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between pt-1"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-mono uppercase tracking-wide text-[#a89bc9]"
+  }, "Stack books on mobile"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMobileStackView(v => !v),
+    className: "relative w-10 h-6 rounded-full transition-colors shrink-0",
+    style: {
+      background: mobileStackView ? '#ffd77a' : 'rgba(255,255,255,0.15)'
+    },
+    "aria-label": "Toggle mobile stacked view"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform",
+    style: {
+      transform: mobileStackView ? 'translateX(18px)' : 'translateX(2px)'
+    }
+  }))))))));
 }
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(/*#__PURE__*/React.createElement(App, null));
