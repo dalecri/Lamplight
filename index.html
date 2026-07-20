@@ -7,7 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet">
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -546,7 +546,11 @@ const TITLE_COLOR_OVERRIDES = {
   // wine-deep red-orange, white font
   'Salt': {
     ink: '#5c0d33'
-  } // deep darker pink font (+ badge dot to match)
+  },
+  // deep darker pink font
+  'The Last Good Winter': {
+    ink: '#2d0a4a'
+  } // much deeper purple font
 };
 
 // Using the same palette for both day and night for now, per feedback — no separate night set yet.
@@ -1523,7 +1527,7 @@ function App() {
   const [shelfScale, setShelfScale] = useState(0.8);
   const [shelfWidthScale, setShelfWidthScale] = useState(1);
   const [barWidthPct, setBarWidthPct] = useState(94); // % width of the shelf bar itself
-  const [barHeight, setBarHeight] = useState(6); // px height of the main shelf bar line
+  const [barHeight, setBarHeight] = useState(14); // px height of the main shelf bar line
   const [showShelfControls, setShowShelfControls] = useState(false);
   const theme = THEMES[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
@@ -2944,7 +2948,8 @@ function App() {
     }), style === 'checkerboard' && /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-0",
       style: {
-        backgroundImage: `linear-gradient(45deg, ${ink}35 25%, transparent 25%), linear-gradient(-45deg, ${ink}35 25%, transparent 25%), linear-gradient(45deg, transparent 75%, ${ink}35 75%), linear-gradient(-45deg, transparent 75%, ${ink}35 75%)`,
+        backgroundImage: `linear-gradient(45deg, #1f5c2e 25%, transparent 25%), linear-gradient(-45deg, #1f5c2e 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1f5c2e 75%), linear-gradient(-45deg, transparent 75%, #1f5c2e 75%)`,
+        backgroundColor: '#8fd99a',
         backgroundSize: '10px 10px',
         backgroundPosition: '0 0, 0 5px, 5px -5px, -5px 0px'
       }
@@ -3008,7 +3013,7 @@ function App() {
         bottom: 8
       }
     }, /*#__PURE__*/React.createElement("span", {
-      className: "font-display font-black leading-none",
+      className: "font-display font-thin leading-none",
       style: {
         fontSize: 38 + hashString(`${book.title}fs`) % 12,
         color: ink,
@@ -3147,20 +3152,27 @@ function App() {
       className: "absolute inset-x-0 flex items-center justify-center",
       style: {
         top: '48%',
-        height: 26,
-        background: `${ink}cc`
+        height: 34,
+        background: `${ink}cc`,
+        transform: book.title.trim() === 'Salt' ? 'rotate(90deg)' : 'none'
       }
     }, /*#__PURE__*/React.createElement("span", {
-      className: "font-display text-[12px] font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden",
+      className: book.title.trim() === 'Salt' ? 'whitespace-nowrap overflow-hidden' : 'font-display text-[12px] font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden',
       style: {
         color: bg,
-        maxWidth: '90%'
+        maxWidth: '90%',
+        display: 'inline-block',
+        fontFamily: book.title.trim() === 'Salt' ? "'Dancing Script', cursive" : undefined,
+        fontSize: book.title.trim() === 'Salt' ? 22 : undefined,
+        fontWeight: book.title.trim() === 'Salt' ? 700 : undefined
       }
     }, book.title)) : (() => {
       const t = book.title.trim();
       const isGarden = t === 'The Unfinished Garden';
       const isAmber = t === 'Amber';
       const isNocturne = t === 'Nocturne';
+      const isGreatWide = t === 'The Great Wide Open';
+      const isCheckerboard = style === 'checkerboard';
       return /*#__PURE__*/React.createElement("div", {
         className: "absolute inset-x-0 flex items-center justify-center",
         style: {
@@ -3175,8 +3187,11 @@ function App() {
           textTransform: isGarden ? 'uppercase' : 'none',
           fontStyle: isGarden ? 'italic' : 'normal',
           letterSpacing: isNocturne ? '0.35em' : '0.015em',
-          color: isAmber ? '#000000' : ink,
-          textDecoration: !isGarden && !isAmber && !isNocturne ? 'underline' : 'none',
+          color: isAmber ? '#000000' : isCheckerboard ? '#ffffff' : ink,
+          textDecoration: isGreatWide ? 'underline' : 'none',
+          textDecorationStyle: 'solid',
+          WebkitTextStroke: isCheckerboard ? '1px #1f5c2e' : 'none',
+          paintOrder: 'stroke fill',
           writingMode: 'vertical-rl',
           maxHeight: '100%',
           display: 'block'
