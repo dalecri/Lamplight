@@ -482,38 +482,38 @@ const hashString = (str = '') => {
 // --- Retro lamp "looks" for book covers: each pairs a color scheme with a simple flat lamp shape ---
 const LOOKS = [{
   bg: '#A059FC',
-  ink: '#2b1a4a',
-  lamp: '#2b1a4a',
+  ink: '#123d24',
+  lamp: '#123d24',
   beam: '#f5eeff',
   variant: 'pendant'
 }, {
   bg: '#F9CD39',
-  ink: '#2b2005',
-  lamp: '#2b2005',
+  ink: '#1a1a6b',
+  lamp: '#1a1a6b',
   beam: '#fff8e0',
   variant: 'mushroom'
 }, {
   bg: '#F4A4E0',
-  ink: '#3a1030',
-  lamp: '#3a1030',
+  ink: '#0d3d2e',
+  lamp: '#0d3d2e',
   beam: '#fff0fa',
   variant: 'arc'
 }, {
   bg: '#F25545',
-  ink: '#2b0a06',
-  lamp: '#2b0a06',
+  ink: '#0d3d3d',
+  lamp: '#0d3d3d',
   beam: '#fdece8',
   variant: 'floor'
 }, {
   bg: '#28A83F',
-  ink: '#eafaf0',
-  lamp: '#eafaf0',
+  ink: '#4a0d3d',
+  lamp: '#4a0d3d',
   beam: '#eafaf0',
   variant: 'globe'
 }, {
   bg: '#F6A0FD',
-  ink: '#3a1040',
-  lamp: '#3a1040',
+  ink: '#1d3d0d',
+  lamp: '#1d3d0d',
   beam: '#fff0fe',
   variant: 'desk'
 }];
@@ -526,8 +526,8 @@ const lookFor = title => {
 // Deterministic per-title spine proportions, so a shelf of books looks organically uneven
 const spineHeightPct = title => 62 + hashString(`${title}h`) % 22; // 62-83%, leaves headroom like the reference
 const spineTilt = () => 0; // tilt removed per feedback — books stand straight
-const SPINE_STYLES = ['plain', 'dotted', 'grid', 'bigletter', 'badge', 'diagonalfine', 'starry', 'elongated', 'centered'];
-const spineStyle = (title, index) => SPINE_STYLES[index % SPINE_STYLES.length];
+const SPINE_STYLES = ['plain', 'dotted', 'checkerboard', 'bigletter', 'badge', 'diagonalfine', 'starry', 'elongated', 'centered', 'pixelcute', 'grid'];
+const spineStyle = (title, index) => title.trim() === 'Static' ? 'grid' : SPINE_STYLES[index % SPINE_STYLES.length];
 const isLightColor = hex => {
   const c = hex.replace('#', '');
   const r = parseInt(c.substr(0, 2), 16),
@@ -537,10 +537,17 @@ const isLightColor = hex => {
 };
 const SPINE_FONTS = ["'Fraunces', serif", "'IBM Plex Mono', monospace", "'Inter', sans-serif"];
 const spineFont = title => SPINE_FONTS[hashString(`${title}font`) % SPINE_FONTS.length];
+const darkenColor = (hex, amt) => {
+  const c = hex.replace('#', '');
+  const r = Math.max(0, parseInt(c.substr(0, 2), 16) - amt);
+  const g = Math.max(0, parseInt(c.substr(2, 2), 16) - amt);
+  const b = Math.max(0, parseInt(c.substr(4, 2), 16) - amt);
+  return `rgb(${r}, ${g}, ${b})`;
+};
 const spineWidthPx = (title, index) => {
   const base = 58 + hashString(`${title}w`) % 20; // 58-77
   const style = spineStyle(title, index);
-  const funkyBonus = style === 'dotted' ? 18 : style === 'bigletter' ? 30 : style === 'grid' ? 12 : style === 'badge' ? 10 : style === 'elongated' ? 8 : 0;
+  const funkyBonus = style === 'dotted' ? 18 : style === 'bigletter' ? 30 : style === 'checkerboard' ? 10 : style === 'badge' ? 10 : style === 'elongated' ? 8 : style === 'pixelcute' ? 14 : style === 'grid' ? 10 : 0;
   return (title.length > 20 ? base + 24 : base) + funkyBonus; // long titles + funky styles get extra width
 };
 const LampArt = ({
@@ -1471,7 +1478,7 @@ function App() {
   const [themeIdx, setThemeIdx] = useState(0);
   const [shelfScale, setShelfScale] = useState(0.8);
   const [shelfWidthScale, setShelfWidthScale] = useState(1);
-  const [barInset, setBarInset] = useState(8); // px margin on each side of the shelf bar; lower = wider bar
+  const [barWidthPct, setBarWidthPct] = useState(94); // % width of the shelf bar itself
   const [showShelfControls, setShowShelfControls] = useState(false);
   const theme = THEMES[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
@@ -2889,10 +2896,17 @@ function App() {
         backgroundSize: '9px 9px',
         backgroundPosition: '4px 4px'
       }
+    }), style === 'checkerboard' && /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-0",
+      style: {
+        backgroundImage: `linear-gradient(45deg, ${ink}35 25%, transparent 25%), linear-gradient(-45deg, ${ink}35 25%, transparent 25%), linear-gradient(45deg, transparent 75%, ${ink}35 75%), linear-gradient(-45deg, transparent 75%, ${ink}35 75%)`,
+        backgroundSize: '10px 10px',
+        backgroundPosition: '0 0, 0 5px, 5px -5px, -5px 0px'
+      }
     }), style === 'grid' && /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-0",
       style: {
-        backgroundImage: `linear-gradient(${ink}35 1px, transparent 1px), linear-gradient(90deg, ${ink}35 1px, transparent 1px)`,
+        backgroundImage: `linear-gradient(${ink}40 1px, transparent 1px), linear-gradient(90deg, ${ink}40 1px, transparent 1px)`,
         backgroundSize: '10px 10px'
       }
     }), style === 'diagonalfine' && /*#__PURE__*/React.createElement("div", {
@@ -2920,7 +2934,17 @@ function App() {
         },
         color: ink
       });
-    }), /*#__PURE__*/React.createElement("div", {
+    }), style === 'badge' ? /*#__PURE__*/React.createElement("div", {
+      className: "absolute rounded-full",
+      style: {
+        top: 10,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 26,
+        height: 4,
+        background: darkenColor(bg, 40)
+      }
+    }) : /*#__PURE__*/React.createElement("div", {
       className: "absolute top-2.5 left-1/2 -translate-x-1/2 flex gap-1"
     }, [0, 1, 2].map(i => /*#__PURE__*/React.createElement("span", {
       key: i,
@@ -2955,7 +2979,7 @@ function App() {
       style: {
         fontSize: 34 + hashString(`${book.title}fs`) % 12,
         color: ink,
-        transform: `scaleY(${2.8 + hashString(`${book.title}sy`) % 18 / 10})`,
+        transform: `scaleY(${4.2 + hashString(`${book.title}sy`) % 27 / 10})`,
         transformOrigin: 'center'
       }
     }, book.title.trim().charAt(0).toUpperCase())) : style === 'centered' ? /*#__PURE__*/React.createElement("div", {
@@ -2965,7 +2989,7 @@ function App() {
         bottom: 12
       }
     }, /*#__PURE__*/React.createElement("div", {
-      className: "relative flex items-center justify-center px-2 py-3",
+      className: "relative flex items-center justify-center px-2.5 py-3.5",
       style: {
         background: isLightColor(ink) ? '#14122e' : '#ffd77a',
         borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px',
@@ -2975,13 +2999,13 @@ function App() {
       className: "font-bold",
       style: {
         fontFamily: spineFont(book.title),
-        fontSize: 16,
+        fontSize: 21,
         color: ink,
         writingMode: 'vertical-rl',
         letterSpacing: '0.015em',
         whiteSpace: 'nowrap'
       }
-    }, book.title))) : style === 'badge' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+    }, book.title))) : style === 'badge' ? /*#__PURE__*/React.createElement("span", {
       className: "absolute font-display text-[15px] font-bold overflow-hidden",
       style: {
         color: ink,
@@ -2993,23 +3017,73 @@ function App() {
         width: 20,
         display: 'block'
       }
-    }, book.title), /*#__PURE__*/React.createElement("div", {
-      className: "absolute rounded-full flex items-center justify-center",
+    }, book.title) : style === 'pixelcute' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("svg", {
+      viewBox: "0 0 16 14",
+      width: "30",
+      height: "26",
+      className: "absolute",
       style: {
-        top: 8,
-        right: 8,
-        width: 22,
-        height: 22,
-        background: ink
+        top: 24,
+        left: '50%',
+        transform: 'translateX(-50%)'
       }
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "rounded-full",
+    }, /*#__PURE__*/React.createElement("g", {
+      fill: ink
+    }, /*#__PURE__*/React.createElement("rect", {
+      x: "2",
+      y: "2",
+      width: "4",
+      height: "4"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "10",
+      y: "2",
+      width: "4",
+      height: "4"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "0",
+      y: "4",
+      width: "2",
+      height: "4"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "4",
+      y: "4",
+      width: "8",
+      height: "4"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "12",
+      y: "4",
+      width: "2",
+      height: "4"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "2",
+      y: "8",
+      width: "10",
+      height: "2"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "4",
+      y: "10",
+      width: "6",
+      height: "2"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "6",
+      y: "12",
+      width: "2",
+      height: "2"
+    }))), /*#__PURE__*/React.createElement("span", {
+      className: "absolute font-bold overflow-hidden",
       style: {
-        width: 8,
-        height: 8,
-        background: bg
+        color: '#e0392f',
+        fontFamily: spineFont(book.title),
+        writingMode: 'vertical-rl',
+        letterSpacing: '0.015em',
+        fontSize: 15,
+        top: 58,
+        bottom: 8,
+        left: 6,
+        width: 20,
+        display: 'block'
       }
-    }))) : style === 'dotted' ? /*#__PURE__*/React.createElement("div", {
+    }, book.title)) : style === 'dotted' ? /*#__PURE__*/React.createElement("div", {
       className: "absolute inset-x-0 flex items-center justify-center",
       style: {
         top: '48%',
@@ -3058,10 +3132,9 @@ function App() {
       }
     })));
   })), /*#__PURE__*/React.createElement("div", {
-    className: "shrink-0 relative",
+    className: "shrink-0 relative mx-auto",
     style: {
-      marginLeft: barInset,
-      marginRight: barInset
+      width: `${barWidthPct}%`
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3139,13 +3212,13 @@ function App() {
     className: "w-full cursor-pointer"
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex justify-between text-[10px] font-mono uppercase tracking-wide mb-1.5 text-[#a89bc9]"
-  }, /*#__PURE__*/React.createElement("span", null, "Shelf bar width"), /*#__PURE__*/React.createElement("span", null, barInset, "px inset")), /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("span", null, "Shelf bar width"), /*#__PURE__*/React.createElement("span", null, barWidthPct, "%")), /*#__PURE__*/React.createElement("input", {
     type: "range",
-    min: -40,
-    max: 60,
+    min: 40,
+    max: 100,
     step: 1,
-    value: barInset,
-    onChange: e => setBarInset(Number(e.target.value)),
+    value: barWidthPct,
+    onChange: e => setBarWidthPct(Number(e.target.value)),
     className: "w-full cursor-pointer"
   })))))));
 }
