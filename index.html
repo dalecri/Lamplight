@@ -33,7 +33,7 @@
     html, body { height: 100%; overscroll-behavior: none; }
     body {
       margin: 0; padding: 0;
-      background: linear-gradient(160deg, #211f30 0%, #29273c 100%);
+      background: linear-gradient(160deg, #2a2136 0%, #241e30 100%);
       background-attachment: fixed;
       color: var(--paper);
       font-family: 'Inter', sans-serif;
@@ -55,11 +55,16 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    .card-track {
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
+    .auth-input::placeholder { color: rgba(255,255,255,0.6); }
+
+    /* Books lift off the shelf on hover, but only on devices that actually have a pointer/hover (not touch) */
+    .spine-lift {
+      transform: rotate(var(--tilt, 0deg));
+      transition: transform 0.15s ease;
     }
-    .card-slide { scroll-snap-align: center; scroll-snap-stop: always; }
+    @media (hover: hover) and (pointer: fine) {
+      .spine-lift:hover { transform: rotate(var(--tilt, 0deg)) translateY(-10px); }
+    }
 
     /* Normal reading mode: one page's worth of text at a time, width scales with screen size */
     .reading-page { width: 100%; max-width: 640px; }
@@ -77,6 +82,15 @@
     .reading-page-anim { animation: page-in 0.22s ease; }
     @media (prefers-reduced-motion: reduce) {
       .reading-page-anim { animation: none; }
+    }
+
+    @keyframes book-open {
+      from { opacity: 0; transform: scale(0.94) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .book-open-anim { animation: book-open 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @media (prefers-reduced-motion: reduce) {
+      .book-open-anim { animation: none; }
     }
 
     .glow {
@@ -269,6 +283,73 @@ const Trash2 = ({
   x2: "14",
   y2: "17"
 }));
+const Check = ({
+  size = 24,
+  className = ""
+}) => /*#__PURE__*/React.createElement("svg", {
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  className: className,
+  ...IconProps
+}, /*#__PURE__*/React.createElement("polyline", {
+  points: "20 6 9 17 4 12"
+}));
+const Sliders = ({
+  size = 24,
+  className = ""
+}) => /*#__PURE__*/React.createElement("svg", {
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  className: className,
+  ...IconProps
+}, /*#__PURE__*/React.createElement("line", {
+  x1: "4",
+  y1: "21",
+  x2: "4",
+  y2: "14"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "4",
+  y1: "10",
+  x2: "4",
+  y2: "3"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "21",
+  x2: "12",
+  y2: "12"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "12",
+  y1: "8",
+  x2: "12",
+  y2: "3"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "20",
+  y1: "21",
+  x2: "20",
+  y2: "16"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "20",
+  y1: "12",
+  x2: "20",
+  y2: "3"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "1",
+  y1: "14",
+  x2: "7",
+  y2: "14"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "9",
+  y1: "8",
+  x2: "15",
+  y2: "8"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "17",
+  y1: "16",
+  x2: "23",
+  y2: "16"
+}));
 const X = ({
   size = 24,
   className = ""
@@ -400,43 +481,68 @@ const hashString = (str = '') => {
 
 // --- Retro lamp "looks" for book covers: each pairs a color scheme with a simple flat lamp shape ---
 const LOOKS = [{
-  bg: '#2b2438',
-  ink: '#f2ece2',
-  lamp: '#e8593a',
-  beam: '#c9a8e0',
+  bg: '#A059FC',
+  ink: '#2b1a4a',
+  lamp: '#2b1a4a',
+  beam: '#f5eeff',
   variant: 'pendant'
 }, {
-  bg: '#3a5f8a',
-  ink: '#f2ece2',
-  lamp: '#e8593a',
-  beam: '#f2ece2',
+  bg: '#F9CD39',
+  ink: '#2b2005',
+  lamp: '#2b2005',
+  beam: '#fff8e0',
   variant: 'mushroom'
 }, {
-  bg: '#4a0f1a',
-  ink: '#f2ece2',
-  lamp: '#f0a8c0',
-  beam: '#e0397a',
+  bg: '#F4A4E0',
+  ink: '#3a1030',
+  lamp: '#3a1030',
+  beam: '#fff0fa',
   variant: 'arc'
 }, {
-  bg: '#c9c48a',
-  ink: '#2b2438',
-  lamp: '#7a7a28',
-  beam: '#f2ece2',
-  variant: 'desk'
-}, {
-  bg: '#1f5c2e',
-  ink: '#f2ece2',
-  lamp: '#8a8228',
-  beam: '#f2ece2',
+  bg: '#F25545',
+  ink: '#2b0a06',
+  lamp: '#2b0a06',
+  beam: '#fdece8',
   variant: 'floor'
 }, {
-  bg: '#f0a8c0',
-  ink: '#4a0f1a',
-  lamp: '#4a0f1a',
-  beam: '#f2ece2',
+  bg: '#28A83F',
+  ink: '#eafaf0',
+  lamp: '#eafaf0',
+  beam: '#eafaf0',
   variant: 'globe'
+}, {
+  bg: '#F6A0FD',
+  ink: '#3a1040',
+  lamp: '#3a1040',
+  beam: '#fff0fe',
+  variant: 'desk'
 }];
-const lookFor = title => LOOKS[hashString(title) % LOOKS.length];
+
+// Using the same palette for both day and night for now, per feedback — no separate night set yet.
+const lookFor = title => {
+  return LOOKS[hashString(title) % LOOKS.length];
+};
+
+// Deterministic per-title spine proportions, so a shelf of books looks organically uneven
+const spineHeightPct = title => 62 + hashString(`${title}h`) % 22; // 62-83%, leaves headroom like the reference
+const spineTilt = () => 0; // tilt removed per feedback — books stand straight
+const SPINE_STYLES = ['plain', 'dotted', 'grid', 'bigletter', 'badge', 'diagonalfine', 'starry', 'elongated', 'centered'];
+const spineStyle = (title, index) => SPINE_STYLES[index % SPINE_STYLES.length];
+const isLightColor = hex => {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substr(0, 2), 16),
+    g = parseInt(c.substr(2, 2), 16),
+    b = parseInt(c.substr(4, 2), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150;
+};
+const SPINE_FONTS = ["'Fraunces', serif", "'IBM Plex Mono', monospace", "'Inter', sans-serif"];
+const spineFont = title => SPINE_FONTS[hashString(`${title}font`) % SPINE_FONTS.length];
+const spineWidthPx = (title, index) => {
+  const base = 58 + hashString(`${title}w`) % 20; // 58-77
+  const style = spineStyle(title, index);
+  const funkyBonus = style === 'dotted' ? 18 : style === 'bigletter' ? 30 : style === 'grid' ? 12 : style === 'badge' ? 10 : style === 'elongated' ? 8 : 0;
+  return (title.length > 20 ? base + 24 : base) + funkyBonus; // long titles + funky styles get extra width
+};
 const LampArt = ({
   variant,
   lamp,
@@ -631,9 +737,10 @@ const LampArt = ({
 const CoverFallback = ({
   title,
   author,
-  pct
+  pct,
+  night
 }) => {
-  const look = lookFor(title);
+  const look = lookFor(title, night);
   const {
     bg,
     ink,
@@ -693,13 +800,402 @@ const CoverFallback = ({
   }, chip)));
 };
 
+// A plainer cover (color + title only, no lamp illustration) for the book-preview overlay
+const SimpleCover = ({
+  title,
+  author,
+  night
+}) => {
+  const {
+    bg,
+    ink
+  } = lookFor(title, night);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 flex flex-col justify-end p-5",
+    style: {
+      background: bg
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-display font-semibold text-lg leading-snug line-clamp-4",
+    style: {
+      color: ink
+    }
+  }, title), author && /*#__PURE__*/React.createElement("p", {
+    className: "text-[12px] mt-1.5 opacity-65",
+    style: {
+      color: ink
+    }
+  }, author));
+};
+
+// Retro blocky pixel-art cloud, matching the reference shelf poster
+const PixelCloud = ({
+  className,
+  style
+}) => /*#__PURE__*/React.createElement("svg", {
+  viewBox: "0 0 64 40",
+  className: className,
+  style: style
+}, /*#__PURE__*/React.createElement("g", {
+  fill: "#93a6f0",
+  opacity: "0.85"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "10",
+  y: "14",
+  width: "44",
+  height: "8"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "16",
+  y: "8",
+  width: "8",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "24",
+  y: "4",
+  width: "10",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "34",
+  y: "6",
+  width: "12",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "46",
+  y: "10",
+  width: "8",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "6",
+  y: "18",
+  width: "52",
+  height: "6"
+})), /*#__PURE__*/React.createElement("g", {
+  fill: "#ffffff"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "8",
+  y: "10",
+  width: "44",
+  height: "8"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "14",
+  y: "4",
+  width: "8",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "22",
+  y: "0",
+  width: "10",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "32",
+  y: "2",
+  width: "12",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "44",
+  y: "6",
+  width: "8",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "4",
+  y: "14",
+  width: "52",
+  height: "6"
+})));
+const PixelCloudB = ({
+  className,
+  style
+}) => /*#__PURE__*/React.createElement("svg", {
+  viewBox: "0 0 64 40",
+  className: className,
+  style: style
+}, /*#__PURE__*/React.createElement("g", {
+  fill: "#93a6f0",
+  opacity: "0.85"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "4",
+  y: "18",
+  width: "56",
+  height: "8"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "10",
+  y: "12",
+  width: "10",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "22",
+  y: "8",
+  width: "14",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "38",
+  y: "10",
+  width: "16",
+  height: "8"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "0",
+  y: "22",
+  width: "60",
+  height: "6"
+})), /*#__PURE__*/React.createElement("g", {
+  fill: "#ffffff"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "2",
+  y: "14",
+  width: "56",
+  height: "8"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "8",
+  y: "8",
+  width: "10",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "20",
+  y: "4",
+  width: "14",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "36",
+  y: "6",
+  width: "16",
+  height: "8"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "0",
+  y: "18",
+  width: "60",
+  height: "6"
+})));
+const PixelCloudC = ({
+  className,
+  style
+}) => /*#__PURE__*/React.createElement("svg", {
+  viewBox: "0 0 48 32",
+  className: className,
+  style: style
+}, /*#__PURE__*/React.createElement("g", {
+  fill: "#93a6f0",
+  opacity: "0.85"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "8",
+  y: "12",
+  width: "32",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "14",
+  y: "6",
+  width: "8",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "24",
+  y: "4",
+  width: "10",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "4",
+  y: "16",
+  width: "40",
+  height: "4"
+})), /*#__PURE__*/React.createElement("g", {
+  fill: "#ffffff"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "6",
+  y: "8",
+  width: "32",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "12",
+  y: "2",
+  width: "8",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "22",
+  y: "0",
+  width: "10",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "2",
+  y: "12",
+  width: "40",
+  height: "4"
+})));
+const PixelMoon = ({
+  className,
+  style
+}) => /*#__PURE__*/React.createElement("svg", {
+  viewBox: "0 0 40 40",
+  className: className,
+  style: style
+}, /*#__PURE__*/React.createElement("mask", {
+  id: "moon-crescent-mask"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "0",
+  y: "0",
+  width: "40",
+  height: "40",
+  fill: "white"
+}), /*#__PURE__*/React.createElement("g", {
+  fill: "black"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "20",
+  y: "2",
+  width: "10",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "16",
+  y: "6",
+  width: "20",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "14",
+  y: "12",
+  width: "24",
+  height: "14"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "16",
+  y: "26",
+  width: "20",
+  height: "6"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "20",
+  y: "32",
+  width: "10",
+  height: "4"
+}))), /*#__PURE__*/React.createElement("g", {
+  fill: "#fff3c4",
+  mask: "url(#moon-crescent-mask)"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "14",
+  y: "2",
+  width: "12",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "8",
+  y: "6",
+  width: "24",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "4",
+  y: "10",
+  width: "32",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "2",
+  y: "14",
+  width: "36",
+  height: "12"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "4",
+  y: "26",
+  width: "32",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "8",
+  y: "30",
+  width: "24",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "14",
+  y: "34",
+  width: "12",
+  height: "4"
+})), /*#__PURE__*/React.createElement("g", {
+  fill: "#fff3c4",
+  opacity: "0.85"
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "32",
+  y: "4",
+  width: "3",
+  height: "3"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "30",
+  y: "30",
+  width: "2",
+  height: "2"
+})));
+const PixelStar = ({
+  className,
+  style,
+  color = '#fff3c4'
+}) => /*#__PURE__*/React.createElement("svg", {
+  viewBox: "0 0 16 16",
+  className: className,
+  style: style
+}, /*#__PURE__*/React.createElement("g", {
+  fill: color
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "7",
+  y: "0",
+  width: "2",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "7",
+  y: "12",
+  width: "2",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "0",
+  y: "7",
+  width: "4",
+  height: "2"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "12",
+  y: "7",
+  width: "4",
+  height: "2"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "6",
+  y: "6",
+  width: "4",
+  height: "4"
+})));
+const PixelShootingStar = ({
+  className,
+  style,
+  color = '#fff3c4'
+}) => /*#__PURE__*/React.createElement("svg", {
+  viewBox: "0 0 36 20",
+  className: className,
+  style: style
+}, /*#__PURE__*/React.createElement("g", {
+  fill: color
+}, /*#__PURE__*/React.createElement("rect", {
+  x: "28",
+  y: "2",
+  width: "4",
+  height: "4"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "24",
+  y: "6",
+  width: "3",
+  height: "3",
+  opacity: "0.75"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "20",
+  y: "9",
+  width: "3",
+  height: "3",
+  opacity: "0.55"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "16",
+  y: "12",
+  width: "2",
+  height: "2",
+  opacity: "0.35"
+}), /*#__PURE__*/React.createElement("rect", {
+  x: "12",
+  y: "15",
+  width: "2",
+  height: "2",
+  opacity: "0.2"
+})));
+
 // --- Reading themes: calm presets + a swatch grid for custom picks ---
 const READING_PRESETS = [{
   id: 'night',
   label: 'Night',
-  bg: '#211f30',
-  ink: '#e9e4f0',
-  accent: '#a893c9'
+  bg: '#2a2136',
+  ink: '#eee6f5',
+  accent: '#b98fd9'
 }, {
   id: 'paper',
   label: 'Paper',
@@ -707,11 +1203,11 @@ const READING_PRESETS = [{
   ink: '#3a3128',
   accent: '#c9793a'
 }, {
-  id: 'sage',
-  label: 'Sage',
-  bg: '#e3e8dc',
-  ink: '#33402f',
-  accent: '#6b8a5a'
+  id: 'day',
+  label: 'Day',
+  bg: '#4a55e0',
+  ink: '#f2ecdd',
+  accent: '#ffd77a'
 }, {
   id: 'dusk',
   label: 'Dusk',
@@ -750,6 +1246,11 @@ const READING_EXTRAS = [{
   ink: '#2b2438',
   accent: '#7a7a28'
 }, {
+  id: 'sage',
+  bg: '#e3e8dc',
+  ink: '#33402f',
+  accent: '#6b8a5a'
+}, {
   id: 'seafoam',
   bg: '#cfe4dc',
   ink: '#1f3a30',
@@ -776,7 +1277,16 @@ const readingThemeTokens = t => ({
   playIcon: t.bg,
   panel: t.bg
 });
-const chromeTheme = readingThemeTokens(READING_PRESETS[0]); // used for auth/loading screens
+const DAY_CHROME = {
+  bg: '#4a55e0',
+  ink: '#f2ecdd',
+  accent: '#ffd77a'
+};
+const NIGHT_CHROME = {
+  bg: '#2a2136',
+  ink: '#eee6f5',
+  accent: '#b98fd9'
+};
 
 // --- Supabase (cross-device sync) ---
 const supabaseClient = window.supabase.createClient('https://kumlmoecgnpkhgpxuopk.supabase.co', 'sb_publishable_qQZRlaTbMm3kEs5n2Fikfg_K5OaciqO');
@@ -789,6 +1299,77 @@ const rowToBook = row => ({
   chapters: row.chapters || [],
   words: row.words ? row.words.split(' ') : [],
   progress: row.progress || 0
+});
+
+// Placeholder books for local/testing mode, so the shelf is populated without needing real EPUBs.
+// Covers a range of title lengths and progress states (unread / partway / finished) for testing.
+const makeDemoWords = n => 'the quiet room held its breath as morning light moved slowly across the worn wooden floor '.repeat(Math.ceil(n / 15)).trim().split(' ').slice(0, n);
+const PLACEHOLDER_BOOKS = [{
+  title: 'The Great Wide Open',
+  author: 'A. Rivera',
+  wordCount: 400,
+  progressPct: 0
+}, {
+  title: 'Salt',
+  author: 'M. Ferro',
+  wordCount: 350,
+  progressPct: 45
+}, {
+  title: 'The Longest Way Home Through Winter',
+  author: 'J. Okafor',
+  wordCount: 500,
+  progressPct: 100
+}, {
+  title: 'Glass Houses',
+  author: 'R. Bianchi',
+  wordCount: 300,
+  progressPct: 20
+}, {
+  title: 'Nocturne',
+  author: 'S. Vale',
+  wordCount: 380,
+  progressPct: 0
+}, {
+  title: 'The Unfinished Garden',
+  author: 'K. Novak',
+  wordCount: 420,
+  progressPct: 70
+}, {
+  title: 'Static',
+  author: 'D. Chen',
+  wordCount: 330,
+  progressPct: 100
+}, {
+  title: 'Everything We Left Behind',
+  author: 'L. Marsh',
+  wordCount: 450,
+  progressPct: 15
+}, {
+  title: 'Amber',
+  author: 'T. Osei',
+  wordCount: 300,
+  progressPct: 0
+}, {
+  title: 'The Last Good Winter',
+  author: 'P. Anand',
+  wordCount: 400,
+  progressPct: 55
+}].map((b, i) => {
+  const words = makeDemoWords(b.wordCount);
+  return {
+    id: `demo-${i}`,
+    title: b.title,
+    author: b.author,
+    chapters: [{
+      title: 'Chapter One',
+      index: 0
+    }, {
+      title: 'Chapter Two',
+      index: Math.floor(words.length / 2)
+    }],
+    words,
+    progress: Math.floor(b.progressPct / 100 * (words.length - 1))
+  };
 });
 const fetchBooks = async () => {
   const {
@@ -887,11 +1468,16 @@ function App() {
   const [wordIndex, setWordIndex] = useState(0);
   const [isParsing, setIsParsing] = useState(false);
   const [showChapters, setShowChapters] = useState(false);
-  const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [themeIdx, setThemeIdx] = useState(0);
+  const [shelfScale, setShelfScale] = useState(0.8);
+  const [shelfWidthScale, setShelfWidthScale] = useState(1);
+  const [barInset, setBarInset] = useState(8); // px margin on each side of the shelf bar; lower = wider bar
+  const [showShelfControls, setShowShelfControls] = useState(false);
   const theme = THEMES[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
   const [readingThemeId, setReadingThemeId] = useState('night');
+  const isNight = readingThemeId === 'night';
+  const chromeTheme = readingThemeTokens(isNight ? NIGHT_CHROME : DAY_CHROME);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const FONT_SIZES = [0.95, 1.05, 1.2, 1.35, 1.5]; // rem, for normal reading mode
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
@@ -907,7 +1493,6 @@ function App() {
   const [authNotice, setAuthNotice] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const fileInputRef = useRef(null);
-  const trackRef = useRef(null);
   useEffect(() => {
     supabaseClient.auth.getSession().then(({
       data
@@ -920,7 +1505,10 @@ function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
   useEffect(() => {
-    if (devMode) return; // local-only, nothing to fetch
+    if (devMode) {
+      setBooks(PLACEHOLDER_BOOKS);
+      return;
+    }
     if (session) {
       fetchBooks().then(setBooks).catch(console.error);
     } else {
@@ -962,27 +1550,6 @@ function App() {
     setDevMode(false);
     await supabaseClient.auth.signOut();
   };
-
-  // Track which library card is centered
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    let raf;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const card = el.querySelector('[data-card]');
-        if (!card) return;
-        const cardW = card.offsetWidth + 16;
-        const idx = Math.round(el.scrollLeft / cardW);
-        setActiveCardIndex(Math.max(0, Math.min(idx, books.length - 1)));
-      });
-    };
-    el.addEventListener('scroll', onScroll, {
-      passive: true
-    });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [books.length]);
 
   // --- Normal reading mode: real pages that fit the screen exactly, no scrolling ---
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 400);
@@ -1215,16 +1782,6 @@ function App() {
     setWordIndex(parseInt(e.target.value, 10));
     setIsPlaying(false);
   };
-  const scrollToCard = idx => {
-    const el = trackRef.current;
-    if (!el) return;
-    const card = el.children[idx];
-    if (card) card.scrollIntoView({
-      behavior: 'smooth',
-      inline: 'center',
-      block: 'nearest'
-    });
-  };
   const currentChapterIdx = activeBook ? activeBook.chapters?.findLastIndex(c => c.index <= wordIndex) ?? -1 : -1;
   const activeReadingTheme = READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0];
   const readerTheme = readingThemeTokens(activeReadingTheme);
@@ -1245,29 +1802,104 @@ function App() {
   }
   if (!session && !devMode) {
     return /*#__PURE__*/React.createElement("div", {
-      className: "flex flex-col items-center justify-center px-8",
+      className: "relative overflow-hidden",
       style: {
         height: '100dvh',
         background: chromeTheme.bg,
         '--font-display': theme.display
       }
     }, /*#__PURE__*/React.createElement("div", {
+      className: "absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none",
+      style: {
+        zIndex: 1
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      viewBox: "0 0 300 600",
+      style: {
+        height: '76vh',
+        width: 'auto',
+        overflow: 'visible'
+      }
+    }, /*#__PURE__*/React.createElement("line", {
+      x1: "150",
+      y1: "0",
+      x2: "150",
+      y2: "90",
+      stroke: isNight ? '#ffd93d' : '#e0392f',
+      strokeWidth: "5"
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "144",
+      y: "90",
+      width: "12",
+      height: "22",
+      fill: isNight ? '#ffd93d' : '#e0392f'
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "126",
+      y: "110",
+      width: "48",
+      height: "14",
+      rx: "7",
+      fill: isNight ? '#aab9d8' : '#14122e'
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "108",
+      y: "122",
+      width: "84",
+      height: "14",
+      rx: "7",
+      fill: isNight ? '#aab9d8' : '#14122e'
+    }), /*#__PURE__*/React.createElement("rect", {
+      x: "86",
+      y: "134",
+      width: "128",
+      height: "16",
+      rx: "8",
+      fill: isNight ? '#aab9d8' : '#14122e'
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M92,148 Q88,148 88,152 L28,560 L272,560 L212,152 Q212,148 208,148 Z",
+      fill: isNight ? '#b98fd9' : '#fff0bd',
+      opacity: "0.85"
+    }))), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setReadingThemeId(isNight ? 'paper' : 'night'),
+      className: "absolute z-20 active:scale-90 transition-transform",
+      style: {
+        top: 'max(1.1rem, env(safe-area-inset-top))',
+        right: '1.1rem'
+      },
+      "aria-label": isNight ? 'Switch to day' : 'Switch to night'
+    }, isNight ? /*#__PURE__*/React.createElement(PixelMoon, {
+      style: {
+        width: 40,
+        height: 40,
+        opacity: 0.95
+      }
+    }) : /*#__PURE__*/React.createElement(PixelCloud, {
+      style: {
+        width: 56,
+        height: 34,
+        opacity: 0.9
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "relative z-10 flex flex-col items-center justify-end h-full px-8 pb-16"
+    }, /*#__PURE__*/React.createElement("div", {
       className: "w-full max-w-xs"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "flex items-center gap-2 justify-center mb-8"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "w-7 h-7 rounded-full glow flex items-center justify-center"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "w-2 h-2 rounded-full",
-      style: {
-        background: chromeTheme.pivot
-      }
-    })), /*#__PURE__*/React.createElement("span", {
+      className: "flex flex-col items-center gap-1.5 mb-7"
+    }, /*#__PURE__*/React.createElement("span", {
       className: "font-display italic text-lg tracking-tight",
       style: {
-        color: chromeTheme.ink
+        color: chromeTheme.ink,
+        textShadow: '0 1px 6px rgba(0,0,0,0.35)'
       }
-    }, "Lamplight")), /*#__PURE__*/React.createElement("form", {
+    }, "Lamplight"), /*#__PURE__*/React.createElement("span", {
+      className: "font-display text-sm",
+      style: {
+        color: chromeTheme.ink,
+        opacity: 0.85,
+        textShadow: '0 1px 6px rgba(0,0,0,0.35)'
+      }
+    }, "Your shelf, ", /*#__PURE__*/React.createElement("span", {
+      className: "italic"
+    }, "read your way."))), /*#__PURE__*/React.createElement("form", {
       onSubmit: handleAuthSubmit,
       className: "flex flex-col gap-3"
     }, /*#__PURE__*/React.createElement("input", {
@@ -1276,10 +1908,13 @@ function App() {
       placeholder: "Email",
       value: authEmail,
       onChange: e => setAuthEmail(e.target.value),
-      className: "w-full px-4 py-3 rounded-2xl text-sm bg-transparent outline-none",
+      className: "auth-input w-full px-4 py-3.5 rounded-2xl text-sm outline-none",
       style: {
-        border: `1px solid ${chromeTheme.line}`,
-        color: chromeTheme.ink
+        background: 'rgba(255,255,255,0.16)',
+        border: '1px solid rgba(255,255,255,0.38)',
+        color: chromeTheme.ink,
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)'
       }
     }), /*#__PURE__*/React.createElement("input", {
       type: "password",
@@ -1288,15 +1923,18 @@ function App() {
       value: authPassword,
       onChange: e => setAuthPassword(e.target.value),
       minLength: 6,
-      className: "w-full px-4 py-3 rounded-2xl text-sm bg-transparent outline-none",
+      className: "auth-input w-full px-4 py-3.5 rounded-2xl text-sm outline-none",
       style: {
-        border: `1px solid ${chromeTheme.line}`,
-        color: chromeTheme.ink
+        background: 'rgba(255,255,255,0.16)',
+        border: '1px solid rgba(255,255,255,0.38)',
+        color: chromeTheme.ink,
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)'
       }
     }), authError && /*#__PURE__*/React.createElement("p", {
       className: "text-xs",
       style: {
-        color: '#e07d91'
+        color: '#ffd9df'
       }
     }, authError), authNotice && /*#__PURE__*/React.createElement("p", {
       className: "text-xs",
@@ -1319,19 +1957,21 @@ function App() {
       },
       className: "w-full text-center text-xs font-mono mt-4",
       style: {
-        color: chromeTheme.muted
+        color: chromeTheme.ink,
+        opacity: 0.75
       }
     }, authMode === 'signUp' ? 'Have an account? Sign in' : "New here? Create an account"), /*#__PURE__*/React.createElement("button", {
       onClick: () => setDevMode(true),
       className: "w-full text-center mt-6 transition-colors",
       style: {
-        color: chromeTheme.muted
+        color: chromeTheme.ink,
+        opacity: 0.6
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "block text-xs font-mono"
     }, "Continue without an account"), /*#__PURE__*/React.createElement("span", {
-      className: "block text-[10px] font-mono opacity-70 mt-0.5"
-    }, "Local only · no cloud sync · progress won't follow you across devices"))));
+      className: "block text-[10px] font-mono opacity-80 mt-0.5"
+    }, "Local only · no cloud sync · progress won't follow you across devices")))));
   }
   return /*#__PURE__*/React.createElement("div", {
     className: "w-full",
@@ -1343,7 +1983,7 @@ function App() {
   /*#__PURE__*/
   // ---------- READER ----------
   React.createElement("div", {
-    className: "fixed inset-0 flex flex-col overflow-hidden transition-colors duration-300",
+    className: "fixed inset-0 flex flex-col overflow-hidden transition-colors duration-300 book-open-anim",
     style: {
       background: readerTheme.bg
     }
@@ -1420,7 +2060,56 @@ function App() {
   }))), readMode === 'rsvp' ? /*#__PURE__*/React.createElement("main", {
     className: "flex-1 flex items-center justify-center relative cursor-pointer",
     onClick: () => setIsPlaying(!isPlaying)
-  }, /*#__PURE__*/React.createElement(RSVPWord, {
+  }, isNight ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '12%',
+      left: '14%',
+      width: 9,
+      height: 9,
+      opacity: 0.35,
+      color: readerTheme.ink
+    },
+    color: readerTheme.ink
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '22%',
+      right: '18%',
+      width: 7,
+      height: 7,
+      opacity: 0.25
+    },
+    color: readerTheme.ink
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      bottom: '18%',
+      left: '22%',
+      width: 6,
+      height: 6,
+      opacity: 0.2
+    },
+    color: readerTheme.ink
+  })) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelCloud, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '10%',
+      right: '12%',
+      width: 44,
+      height: 28,
+      opacity: 0.18
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloud, {
+    className: "absolute pointer-events-none",
+    style: {
+      bottom: '14%',
+      left: '10%',
+      width: 34,
+      height: 22,
+      opacity: 0.14
+    }
+  })), /*#__PURE__*/React.createElement(RSVPWord, {
     word: activeBook.words[wordIndex] || "The end.",
     isPlaying: isPlaying,
     ink: readerTheme.ink,
@@ -1880,8 +2569,241 @@ function App() {
   /*#__PURE__*/
   // ---------- LIBRARY (SHELF) ----------
   React.createElement("div", {
-    className: "h-full flex flex-col overflow-hidden relative"
-  }, /*#__PURE__*/React.createElement("nav", {
+    className: "h-full flex flex-col overflow-hidden relative",
+    style: {
+      background: isNight ? '#2a2136' : '#4a55e0'
+    }
+  }, readingThemeId === 'night' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReadingThemeId('paper'),
+    className: "absolute z-20 active:scale-90 transition-transform",
+    style: {
+      top: '8%',
+      right: '10%'
+    },
+    "aria-label": "Switch to day"
+  }, /*#__PURE__*/React.createElement(PixelMoon, {
+    style: {
+      width: 46,
+      height: 46,
+      opacity: 0.95
+    }
+  })), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '6%',
+      left: '12%',
+      width: 10,
+      height: 10,
+      opacity: 0.8
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '16%',
+      left: '28%',
+      width: 7,
+      height: 7,
+      opacity: 0.6
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '10%',
+      right: '32%',
+      width: 8,
+      height: 8,
+      opacity: 0.7
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '28%',
+      left: '45%',
+      width: 6,
+      height: 6,
+      opacity: 0.45
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '14%',
+      left: '62%',
+      width: 6,
+      height: 6,
+      opacity: 0.5
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '4%',
+      left: '42%',
+      width: 5,
+      height: 5,
+      opacity: 0.4
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '36%',
+      left: '14%',
+      width: 6,
+      height: 6,
+      opacity: 0.35
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '40%',
+      right: '10%',
+      width: 8,
+      height: 8,
+      opacity: 0.5
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '48%',
+      left: '34%',
+      width: 5,
+      height: 5,
+      opacity: 0.3
+    }
+  }), /*#__PURE__*/React.createElement(PixelStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '2%',
+      right: '42%',
+      width: 7,
+      height: 7,
+      opacity: 0.55
+    }
+  }), /*#__PURE__*/React.createElement(PixelShootingStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '20%',
+      left: '18%',
+      width: 36,
+      height: 20,
+      opacity: 0.6,
+      transform: 'rotate(20deg)'
+    }
+  }), /*#__PURE__*/React.createElement(PixelShootingStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '30%',
+      right: '20%',
+      width: 28,
+      height: 16,
+      opacity: 0.45,
+      transform: 'rotate(20deg)'
+    }
+  }), /*#__PURE__*/React.createElement(PixelShootingStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '8%',
+      left: '46%',
+      width: 30,
+      height: 17,
+      opacity: 0.4,
+      transform: 'rotate(25deg)'
+    }
+  }), /*#__PURE__*/React.createElement(PixelShootingStar, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '44%',
+      left: '6%',
+      width: 24,
+      height: 14,
+      opacity: 0.35,
+      transform: 'rotate(15deg)'
+    }
+  })) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setReadingThemeId('night'),
+    className: "absolute z-20 active:scale-90 transition-transform",
+    style: {
+      top: '6%',
+      right: '6%'
+    },
+    "aria-label": "Switch to night"
+  }, /*#__PURE__*/React.createElement(PixelCloud, {
+    style: {
+      width: 64,
+      height: 40,
+      opacity: 0.9
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloud, {
+    className: "absolute",
+    style: {
+      top: '58%',
+      right: '65%',
+      width: 40,
+      height: 26,
+      opacity: 0.7
+    }
+  })), /*#__PURE__*/React.createElement(PixelCloud, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '4%',
+      left: '4%',
+      width: 120,
+      height: 75,
+      opacity: 0.5
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloudB, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '16%',
+      left: '32%',
+      width: 80,
+      height: 50,
+      opacity: 0.35
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloudC, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '2%',
+      left: '54%',
+      width: 64,
+      height: 43,
+      opacity: 0.4
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloudB, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '30%',
+      left: '6%',
+      width: 100,
+      height: 62,
+      opacity: 0.3
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloud, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '38%',
+      right: '6%',
+      width: 140,
+      height: 88,
+      opacity: 0.28
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloudC, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '48%',
+      left: '44%',
+      width: 70,
+      height: 47,
+      opacity: 0.25
+    }
+  }), /*#__PURE__*/React.createElement(PixelCloudB, {
+    className: "absolute pointer-events-none",
+    style: {
+      top: '56%',
+      right: '28%',
+      width: 66,
+      height: 41,
+      opacity: 0.3
+    }
+  })), /*#__PURE__*/React.createElement("nav", {
     className: "flex justify-between items-center px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-1 shrink-0"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2"
@@ -1891,81 +2813,10 @@ function App() {
     className: "w-2 h-2 rounded-full bg-[#f0ab3c]"
   })), /*#__PURE__*/React.createElement("span", {
     className: "font-display italic text-lg tracking-tight text-[#f2ecdd]"
-  }, "Lamplight")), /*#__PURE__*/React.createElement("button", {
-    onClick: handleSignOut,
-    className: "font-mono text-[9px] uppercase tracking-wide text-[#a89bc9]/60 active:text-[#a89bc9] transition-colors"
-  }, devMode ? 'Exit local mode' : 'Sign out')), /*#__PURE__*/React.createElement("div", {
-    className: "px-5 pt-2 pb-3 shrink-0"
-  }, /*#__PURE__*/React.createElement("h1", {
-    className: "font-display font-medium text-[1.6rem] leading-[1.15] text-[#f2ecdd]"
-  }, "Your shelf,", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
-    className: "italic text-[#f0ab3c]"
-  }, "lit for the night."))), /*#__PURE__*/React.createElement("div", {
-    className: "flex-1 min-h-0 flex items-center overflow-hidden"
-  }, books.length > 0 ? /*#__PURE__*/React.createElement("div", {
-    ref: trackRef,
-    className: "card-track no-scrollbar flex gap-4 overflow-x-auto overflow-y-visible w-full h-full items-center",
-    style: {
-      paddingInline: '16vw',
-      scrollPaddingInline: '16vw'
-    }
-  }, books.map(book => {
-    const pct = book.progress > 0 && book.words?.length > 0 ? book.progress / book.words.length * 100 : 0;
-    const {
-      ink
-    } = lookFor(book.title);
-    return /*#__PURE__*/React.createElement("div", {
-      key: book.id,
-      "data-card": true,
-      onClick: () => openBook(book),
-      className: "card-slide relative shrink-0 aspect-[2/3] rounded-[10px] overflow-hidden active:scale-[0.97] transition-transform",
-      style: {
-        height: 'min(52vh, 380px)',
-        boxShadow: '0 18px 34px -20px rgba(0,0,0,0.55)'
-      }
-    }, /*#__PURE__*/React.createElement(CoverFallback, {
-      title: book.title,
-      author: book.author,
-      pct: pct
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "absolute left-0 top-0 bottom-0 w-2.5 pointer-events-none",
-      style: {
-        background: 'linear-gradient(90deg, rgba(0,0,0,0.32), rgba(0,0,0,0.04))'
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "absolute right-0 top-1 bottom-1 w-[5px] rounded-r-[6px] pointer-events-none",
-      style: {
-        background: 'linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.32))'
-      }
-    }), /*#__PURE__*/React.createElement("button", {
-      onClick: e => handleDelete(e, book.id),
-      className: "absolute top-3 right-3 p-1.5 rounded-full backdrop-blur-sm active:opacity-70 transition-opacity",
-      style: {
-        background: `${ink}1f`,
-        color: ink
-      }
-    }, /*#__PURE__*/React.createElement(Trash2, {
-      size: 13
-    })));
-  })) : /*#__PURE__*/React.createElement("div", {
-    className: "w-full px-8 flex flex-col items-center text-center gap-4"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "p-5 rounded-2xl border border-dashed border-[var(--line)]"
-  }, /*#__PURE__*/React.createElement(BookOpen, {
-    size: 28,
-    className: "text-[#463f6e]"
-  })), /*#__PURE__*/React.createElement("p", {
-    className: "text-sm text-[#a89bc9] max-w-[220px]"
-  }, "No books on the shelf yet."))), books.length > 1 && /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-center gap-1.5 pb-2 pt-2 shrink-0"
-  }, books.map((_, idx) => /*#__PURE__*/React.createElement("button", {
-    key: idx,
-    onClick: () => scrollToCard(idx),
-    className: `h-1.5 rounded-full transition-all ${idx === activeCardIndex ? 'w-4 bg-[#f0ab3c]' : 'w-1.5 bg-[rgba(242,236,221,0.15)]'}`
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-1 shrink-0"
+  }, "Lamplight")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "font-mono text-[10px] text-[#a89bc9]"
+    className: "font-mono text-[9px] text-[#f2ecdd]/60"
   }, books.length, " book", books.length !== 1 ? 's' : ''), /*#__PURE__*/React.createElement("input", {
     type: "file",
     accept: ".epub",
@@ -1976,12 +2827,327 @@ function App() {
     onClick: () => fileInputRef.current?.click(),
     disabled: isParsing || !window.ePub,
     "aria-label": "Add book",
-    className: "w-8 h-8 flex items-center justify-center rounded-full border border-[var(--line)] text-[#a89bc9] active:text-[#f2ecdd] transition-colors disabled:opacity-40"
+    className: "text-[#f2ecdd]/60 active:text-[#f2ecdd] transition-colors disabled:opacity-40"
   }, isParsing ? /*#__PURE__*/React.createElement("div", {
-    className: "w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"
+    className: "w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"
   }) : /*#__PURE__*/React.createElement(Plus, {
+    size: 16
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowShelfControls(true),
+    className: "text-[#f2ecdd]/60 active:text-[#f2ecdd] transition-colors",
+    "aria-label": "Adjust shelf size"
+  }, /*#__PURE__*/React.createElement(Sliders, {
     size: 15
-  })))));
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: handleSignOut,
+    className: "font-mono text-[9px] uppercase tracking-wide text-[#f2ecdd]/60 active:text-[#f2ecdd] transition-colors"
+  }, devMode ? 'Exit local mode' : 'Sign out'))), /*#__PURE__*/React.createElement("div", {
+    className: "h-8 shrink-0"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-h-0 flex flex-col pb-[max(4rem,env(safe-area-inset-bottom))]"
+  }, books.length > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-h-0 flex flex-col",
+    style: {
+      transform: `scale(${shelfScale * shelfWidthScale}, ${shelfScale})`,
+      transformOrigin: 'center center'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-h-0 overflow-x-auto no-scrollbar flex items-end gap-0.5 px-10",
+    style: {
+      WebkitOverflowScrolling: 'touch'
+    }
+  }, books.map((book, idx) => {
+    const {
+      bg,
+      ink
+    } = lookFor(book.title, isNight);
+    const pct = book.progress > 0 && book.words?.length > 0 ? book.progress / book.words.length * 100 : 0;
+    const filledDots = pct <= 0 ? 0 : pct >= 97 ? 3 : Math.max(1, Math.round(pct / 33));
+    const style = spineStyle(book.title, idx);
+    return /*#__PURE__*/React.createElement("button", {
+      key: book.id,
+      onClick: () => openBook(book),
+      className: "spine-lift group relative shrink-0 rounded-t-[3px] rounded-b-[1px]",
+      style: {
+        background: bg,
+        width: spineWidthPx(book.title, idx),
+        height: `${spineHeightPct(book.title)}%`,
+        '--tilt': `${spineTilt(book.title)}deg`,
+        transformOrigin: 'bottom center',
+        boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
+      },
+      "aria-label": book.title
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "absolute top-0 left-0 right-0 h-1 rounded-t-[3px]",
+      style: {
+        background: 'rgba(255,255,255,0.15)'
+      }
+    }), style === 'dotted' && /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-0",
+      style: {
+        backgroundImage: `radial-gradient(${ink}45 1.5px, transparent 1.5px)`,
+        backgroundSize: '9px 9px',
+        backgroundPosition: '4px 4px'
+      }
+    }), style === 'grid' && /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-0",
+      style: {
+        backgroundImage: `linear-gradient(${ink}35 1px, transparent 1px), linear-gradient(90deg, ${ink}35 1px, transparent 1px)`,
+        backgroundSize: '10px 10px'
+      }
+    }), style === 'diagonalfine' && /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-0",
+      style: {
+        backgroundImage: `repeating-linear-gradient(45deg, ${ink}55 0px, ${ink}55 1.5px, transparent 1.5px, transparent 6px)`
+      }
+    }), style === 'starry' && Array.from({
+      length: 22
+    }).map((_, i) => {
+      const seed = hashString(`${book.title}star${i}`);
+      const top = 4 + seed % 90;
+      const left = 4 + (seed >> 3) % 90;
+      const size = 3 + seed % 6;
+      const opacity = 0.3 + seed % 55 / 100;
+      return /*#__PURE__*/React.createElement(PixelStar, {
+        key: i,
+        className: "absolute",
+        style: {
+          top: `${top}%`,
+          left: `${left}%`,
+          width: size,
+          height: size,
+          opacity
+        },
+        color: ink
+      });
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "absolute top-2.5 left-1/2 -translate-x-1/2 flex gap-1"
+    }, [0, 1, 2].map(i => /*#__PURE__*/React.createElement("span", {
+      key: i,
+      className: "rounded-full",
+      style: {
+        width: 6,
+        height: 6,
+        background: '#ffd77a',
+        opacity: i < filledDots ? 1 : 0.45,
+        boxShadow: i < filledDots ? '0 0 4px rgba(255,215,122,0.6)' : 'none'
+      }
+    }))), style === 'bigletter' ? /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex items-center justify-center",
+      style: {
+        top: 20,
+        bottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-display font-bold leading-none",
+      style: {
+        fontSize: 64,
+        color: ink
+      }
+    }, book.title.trim().charAt(0).toUpperCase())) : style === 'elongated' ? /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex items-center justify-center overflow-hidden",
+      style: {
+        top: 8,
+        bottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-display font-normal leading-none",
+      style: {
+        fontSize: 34 + hashString(`${book.title}fs`) % 12,
+        color: ink,
+        transform: `scaleY(${2.8 + hashString(`${book.title}sy`) % 18 / 10})`,
+        transformOrigin: 'center'
+      }
+    }, book.title.trim().charAt(0).toUpperCase())) : style === 'centered' ? /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex items-center justify-center",
+      style: {
+        top: 30,
+        bottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "relative flex items-center justify-center px-2 py-3",
+      style: {
+        background: isLightColor(ink) ? '#14122e' : '#ffd77a',
+        borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px',
+        transform: `rotate(${hashString(`${book.title}rot`) % 5 - 2}deg)`
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-bold",
+      style: {
+        fontFamily: spineFont(book.title),
+        fontSize: 16,
+        color: ink,
+        writingMode: 'vertical-rl',
+        letterSpacing: '0.015em',
+        whiteSpace: 'nowrap'
+      }
+    }, book.title))) : style === 'badge' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+      className: "absolute font-display text-[15px] font-bold overflow-hidden",
+      style: {
+        color: ink,
+        writingMode: 'vertical-rl',
+        letterSpacing: '0.02em',
+        top: 4,
+        bottom: 4,
+        left: 6,
+        width: 20,
+        display: 'block'
+      }
+    }, book.title), /*#__PURE__*/React.createElement("div", {
+      className: "absolute rounded-full flex items-center justify-center",
+      style: {
+        top: 8,
+        right: 8,
+        width: 22,
+        height: 22,
+        background: ink
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "rounded-full",
+      style: {
+        width: 8,
+        height: 8,
+        background: bg
+      }
+    }))) : style === 'dotted' ? /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex items-center justify-center",
+      style: {
+        top: '48%',
+        height: 26,
+        background: `${ink}cc`
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-display text-[12px] font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden",
+      style: {
+        color: bg,
+        maxWidth: '90%'
+      }
+    }, book.title)) : /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-x-0 flex items-center justify-center",
+      style: {
+        top: 30,
+        bottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-bold overflow-hidden",
+      style: {
+        fontFamily: spineFont(book.title),
+        fontSize: 17,
+        color: ink,
+        writingMode: 'vertical-rl',
+        letterSpacing: '0.015em',
+        maxHeight: '100%',
+        display: 'block'
+      }
+    }, book.title)), /*#__PURE__*/React.createElement("span", {
+      onClick: e => {
+        e.stopPropagation();
+        handleDelete(e, book.id);
+      },
+      role: "button",
+      tabIndex: 0,
+      className: "absolute bottom-2 left-1/2 -translate-x-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer",
+      style: {
+        background: `${ink}22`
+      },
+      "aria-label": `Remove ${book.title}`
+    }, /*#__PURE__*/React.createElement(Trash2, {
+      size: 14,
+      style: {
+        color: ink
+      }
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "shrink-0 relative",
+    style: {
+      marginLeft: barInset,
+      marginRight: barInset
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 6,
+      background: isNight ? 'rgba(255,255,255,0.9)' : '#14122e',
+      borderRadius: 3
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 3,
+      background: isNight ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.4)',
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "absolute left-6 right-6",
+    style: {
+      top: 10,
+      height: 16,
+      background: 'rgba(0,0,0,0.5)',
+      filter: 'blur(9px)',
+      borderRadius: '50%'
+    }
+  })))) : /*#__PURE__*/React.createElement("div", {
+    className: "h-full w-full px-8 flex flex-col items-center justify-center text-center gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-5 rounded-2xl border border-dashed border-white/20"
+  }, /*#__PURE__*/React.createElement(BookOpen, {
+    size: 28,
+    className: "text-white/50"
+  })), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-[#f2ecdd]/70 max-w-[220px]"
+  }, "No books on the shelf yet."))), showShelfControls && /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 z-50 flex flex-col justify-end",
+    onClick: () => setShowShelfControls(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "rounded-t-3xl px-5 pt-4",
+    style: {
+      background: isNight ? '#211f30' : '#2c37a8'
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-center mb-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-9 h-1 rounded-full bg-white/15"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-center mb-4"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-display italic text-lg text-[#f2ecdd]"
+  }, "Shelf size"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowShelfControls(false),
+    className: "p-1 text-[#a89bc9]"
+  }, /*#__PURE__*/React.createElement(X, {
+    size: 18
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "pb-[max(1.5rem,env(safe-area-inset-bottom))] flex flex-col gap-4"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-[10px] font-mono uppercase tracking-wide mb-1.5 text-[#a89bc9]"
+  }, /*#__PURE__*/React.createElement("span", null, "Overall size"), /*#__PURE__*/React.createElement("span", null, Math.round(shelfScale * 100), "%")), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: 0.5,
+    max: 1.15,
+    step: 0.01,
+    value: shelfScale,
+    onChange: e => setShelfScale(Number(e.target.value)),
+    className: "w-full cursor-pointer"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-[10px] font-mono uppercase tracking-wide mb-1.5 text-[#a89bc9]"
+  }, /*#__PURE__*/React.createElement("span", null, "Width"), /*#__PURE__*/React.createElement("span", null, Math.round(shelfWidthScale * 100), "%")), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: 0.6,
+    max: 1.3,
+    step: 0.01,
+    value: shelfWidthScale,
+    onChange: e => setShelfWidthScale(Number(e.target.value)),
+    className: "w-full cursor-pointer"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-[10px] font-mono uppercase tracking-wide mb-1.5 text-[#a89bc9]"
+  }, /*#__PURE__*/React.createElement("span", null, "Shelf bar width"), /*#__PURE__*/React.createElement("span", null, barInset, "px inset")), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: -40,
+    max: 60,
+    step: 1,
+    value: barInset,
+    onChange: e => setBarInset(Number(e.target.value)),
+    className: "w-full cursor-pointer"
+  })))))));
 }
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(/*#__PURE__*/React.createElement(App, null));
