@@ -668,12 +668,12 @@ const spineHeightPct = title => {
 };
 const spineTilt = () => 0; // tilt removed per feedback — books stand straight
 const SPINE_STYLES = ['plain', 'dotted', 'brutalist', 'bigletter', 'badge', 'diagonalfine', 'starry', 'elongated', 'centered', 'pixelcute', 'grid', 'swiss'];
-const spineStyle = (title, index) => {
+const spineStyle = (title, id) => {
   const t = title.trim();
   if (t === 'Static') return 'grid';
   if (t === 'Nocturne' || t === 'Amber' || t === 'Salt') return 'plain';
   if (t === 'The Longest Way Home Through Winter') return 'dotted';
-  return SPINE_STYLES[index % SPINE_STYLES.length];
+  return SPINE_STYLES[hashString(String(id || title)) % SPINE_STYLES.length];
 };
 const isLightColor = hex => {
   const c = hex.replace('#', '');
@@ -691,9 +691,9 @@ const darkenColor = (hex, amt) => {
   const b = Math.max(0, parseInt(c.substr(4, 2), 16) - amt);
   return `rgb(${r}, ${g}, ${b})`;
 };
-const spineWidthPx = (title, index) => {
+const spineWidthPx = (title, id) => {
   const base = 58 + hashString(`${title}w`) % 20; // 58-77
-  const style = spineStyle(title, index);
+  const style = spineStyle(title, id);
   const funkyBonus = style === 'dotted' ? 18 : style === 'bigletter' ? 30 : style === 'brutalist' ? 14 : style === 'badge' ? 10 : style === 'elongated' ? 8 : style === 'pixelcute' ? 14 : style === 'grid' ? 10 : style === 'swiss' ? 6 : 0;
   const titleBonus = title.trim() === 'Static' ? 22 : 0;
   return (title.length > 20 ? base + 24 : base) + funkyBonus + titleBonus; // long titles + funky styles get extra width
@@ -1356,19 +1356,19 @@ const CuteSlider = ({
   const chipPct = Math.max(30, pct);
   const dotCount = 3;
   return /*#__PURE__*/React.createElement("div", {
-    className: "relative rounded-full overflow-hidden",
+    className: "relative rounded-xl overflow-hidden",
     style: {
-      height: 44,
+      height: 34,
       background: 'rgba(255,255,255,0.06)'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "absolute top-0 bottom-0 left-0 flex items-center pl-3 pr-1 rounded-full pointer-events-none",
+    className: "absolute top-0 bottom-0 left-0 flex items-center pl-2.5 pr-1 rounded-xl pointer-events-none",
     style: {
       width: `${chipPct}%`,
       background: 'rgba(255,255,255,0.14)'
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-sm font-semibold truncate",
+    className: "text-xs font-semibold truncate",
     style: {
       color: '#f2ecdd'
     }
@@ -1378,15 +1378,11 @@ const CuteSlider = ({
       left: `${chipPct}%`,
       transform: 'translate(-50%, -50%)',
       width: 2,
-      height: 22,
+      height: 16,
       background: 'rgba(255,255,255,0.55)'
     }
   }), /*#__PURE__*/React.createElement("div", {
-    className: "absolute inset-y-0 flex items-center justify-evenly pointer-events-none",
-    style: {
-      left: `calc(${chipPct}% + 14px)`,
-      right: 44
-    }
+    className: "absolute inset-y-0 right-11 flex items-center justify-end gap-2.5 pointer-events-none"
   }, Array.from({
     length: dotCount
   }).map((_, i) => /*#__PURE__*/React.createElement("span", {
@@ -1398,9 +1394,9 @@ const CuteSlider = ({
       background: 'rgba(255,255,255,0.35)'
     }
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+    className: "absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-sm font-bold",
+    className: "text-xs font-bold",
     style: {
       color: '#f2ecdd'
     }
@@ -1653,7 +1649,8 @@ const RSVPWord = ({
   isPlaying,
   ink,
   pivotColor,
-  glowColor
+  glowColor,
+  sizeScale = 1
 }) => {
   if (!word) return null;
   const getORP = w => {
@@ -1671,7 +1668,10 @@ const RSVPWord = ({
   const mid = word.substring(orp, orp + 1);
   const right = word.substring(orp + 1);
   return /*#__PURE__*/React.createElement("div", {
-    className: "relative flex font-display font-medium text-[2.75rem] sm:text-[4rem] tracking-tight items-center justify-center select-none w-full px-6"
+    className: "relative flex font-display font-medium tracking-tight items-center justify-center select-none w-full px-6",
+    style: {
+      fontSize: `clamp(${(2.75 * sizeScale).toFixed(2)}rem, ${(7 * sizeScale).toFixed(1)}vw, ${(4 * sizeScale).toFixed(2)}rem)`
+    }
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex-1 text-right whitespace-pre",
     style: {
@@ -2247,21 +2247,14 @@ function App() {
     style: {
       color: readerTheme.muted
     }
-  }, activeBook.title)), /*#__PURE__*/React.createElement("button", {
-    onClick: e => {
-      e.stopPropagation();
-      setShowThemePicker(true);
-    },
-    className: "flex items-center justify-center w-9 h-9 rounded-full shrink-0 transition-colors",
+  }, activeBook.title), activeBook.author && /*#__PURE__*/React.createElement("span", {
+    className: "font-mono text-[10px] uppercase tracking-wide truncate block mt-0.5",
     style: {
-      border: `1px solid ${readerTheme.line}`,
-      color: readerTheme.muted
-    },
-    "aria-label": "Customize"
-  }, /*#__PURE__*/React.createElement(Sliders, {
-    size: 15
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "w-[76px] shrink-0"
+      color: readerTheme.muted,
+      opacity: 0.6
+    }
+  }, activeBook.author)), /*#__PURE__*/React.createElement("div", {
+    className: "w-[124px] shrink-0"
   })), /*#__PURE__*/React.createElement("div", {
     className: "absolute z-40 flex items-center gap-1",
     style: {
@@ -2269,6 +2262,19 @@ function App() {
       right: '1.1rem'
     }
   }, showControls && /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setShowThemePicker(true);
+    },
+    className: "w-9 h-9 flex items-center justify-center rounded-full transition-colors",
+    style: {
+      border: `1px solid ${readerTheme.line}`,
+      color: readerTheme.muted
+    },
+    "aria-label": "Customize"
+  }, /*#__PURE__*/React.createElement(Sliders, {
+    size: 15
+  })), showControls && /*#__PURE__*/React.createElement("button", {
     onClick: e => {
       e.stopPropagation();
       setIsPlaying(false);
@@ -2357,7 +2363,8 @@ function App() {
     isPlaying: isPlaying,
     ink: readerTheme.ink,
     pivotColor: readerTheme.pivot,
-    glowColor: readerTheme.glow
+    glowColor: readerTheme.glow,
+    sizeScale: FONT_SIZES[fontSizeIdx] / FONT_SIZES[1]
   })) : /*#__PURE__*/React.createElement("main", {
     className: "flex-1 relative overflow-hidden",
     onClick: e => {
@@ -3055,7 +3062,7 @@ function App() {
     },
     onScroll: () => setActiveSpineId(null)
   }, books.map((book, idx) => {
-    const style = spineStyle(book.title, idx);
+    const style = spineStyle(book.title, book.id);
     const {
       bg,
       ink
@@ -3066,7 +3073,7 @@ function App() {
     const pct = book.progress > 0 && book.words?.length > 0 ? book.progress / book.words.length * 100 : 0;
     const filledDots = pct <= 0 ? 0 : pct >= 97 ? 3 : Math.max(1, Math.round(pct / 33));
     const mobileLengthPx = (Math.round(spineHeightPct(book.title) / 100 * 300) + 20) * mobileBookWidthScale; // approximates the same proportions, rotated
-    const effectiveWidthPx = book.title.trim() === 'The Last Good Winter' ? spineWidthPx(book.title, idx) * 1.35 : spineWidthPx(book.title, idx);
+    const effectiveWidthPx = book.title.trim() === 'The Last Good Winter' ? spineWidthPx(book.title, book.id) * 1.35 : spineWidthPx(book.title, book.id);
     return /*#__PURE__*/React.createElement("div", {
       key: book.id,
       className: `spine-mobile-wrap shrink-0 ${mobileStackView ? 'stack-mode' : ''}`,
@@ -3495,27 +3502,44 @@ function App() {
   }), /*#__PURE__*/React.createElement("div", {
     className: "absolute top-0 left-0 right-0 z-50 overflow-hidden transition-[max-height] duration-300 ease-out",
     style: {
-      maxHeight: showShelfControls ? '30vh' : '0px'
+      maxHeight: showShelfControls ? '34vh' : '0px'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "px-5 md:px-8 pt-[max(1.1rem,env(safe-area-inset-top))] pb-5 rounded-b-3xl md:shadow-2xl overflow-y-auto",
+    className: "px-5 md:px-8 pt-[max(1rem,env(safe-area-inset-top))] pb-4 rounded-b-3xl md:shadow-2xl overflow-y-auto",
     style: {
       background: isNight ? 'rgba(33,31,48,0.6)' : 'rgba(44,55,168,0.6)',
       backdropFilter: 'blur(28px) saturate(160%)',
       WebkitBackdropFilter: 'blur(28px) saturate(160%)',
-      maxHeight: '30vh'
+      maxHeight: '34vh'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-between items-center mb-4"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "font-display italic text-lg text-[#f2ecdd]"
-  }, "Shelf size"), /*#__PURE__*/React.createElement("button", {
+    className: "flex justify-between items-center mb-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-semibold",
+    style: {
+      color: '#f2ecdd'
+    }
+  }, "Stack on mobile"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMobileStackView(v => !v),
+    className: "relative w-9 h-5 rounded-full transition-colors shrink-0",
+    style: {
+      background: mobileStackView ? '#ffd77a' : 'rgba(255,255,255,0.15)'
+    },
+    "aria-label": "Toggle mobile stacked view"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform",
+    style: {
+      transform: mobileStackView ? 'translateX(16px)' : 'translateX(0)'
+    }
+  }))), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowShelfControls(false),
     className: "p-1 text-[#a89bc9]"
   }, /*#__PURE__*/React.createElement(X, {
     size: 18
   }))), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-3"
+    className: "grid grid-cols-2 md:grid-cols-3 gap-x-2.5 gap-y-2.5"
   }, /*#__PURE__*/React.createElement(CuteSlider, {
     label: "Overall size",
     value: shelfScale,
@@ -3564,26 +3588,7 @@ function App() {
     step: 0.05,
     onChange: setMobileBookWidthScale,
     displayValue: `${Math.round(mobileBookWidthScale * 100)}%`
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between mt-4 pt-4 border-t border-white/10"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[13px] font-semibold",
-    style: {
-      color: '#f2ecdd'
-    }
-  }, "Stack books on mobile"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setMobileStackView(v => !v),
-    className: "relative w-10 h-6 rounded-full transition-colors shrink-0",
-    style: {
-      background: mobileStackView ? '#ffd77a' : 'rgba(255,255,255,0.15)'
-    },
-    "aria-label": "Toggle mobile stacked view"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform",
-    style: {
-      transform: mobileStackView ? 'translateX(16px)' : 'translateX(0)'
-    }
-  })))))));
+  }))))));
 }
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(/*#__PURE__*/React.createElement(App, null));
