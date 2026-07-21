@@ -632,6 +632,30 @@ const LOOKS = [{
   lamp: '#1d3d0d',
   beam: '#fff0fe',
   variant: 'desk'
+}, {
+  bg: '#3A7BD9',
+  ink: '#f5f8ff',
+  lamp: '#f5f8ff',
+  beam: '#eaf2ff',
+  variant: 'pendant'
+}, {
+  bg: '#1FB6A8',
+  ink: '#0a2b28',
+  lamp: '#0a2b28',
+  beam: '#eafffb',
+  variant: 'mushroom'
+}, {
+  bg: '#E88A2E',
+  ink: '#2b1608',
+  lamp: '#2b1608',
+  beam: '#fff2e2',
+  variant: 'arc'
+}, {
+  bg: '#4A3A9E',
+  ink: '#f0ecfa',
+  lamp: '#f0ecfa',
+  beam: '#ece5fc',
+  variant: 'globe'
 }];
 
 // Manual color overrides for a few specific books, requested individually
@@ -1794,7 +1818,7 @@ function App() {
   const [showControls, setShowControls] = useState(true);
   const [session, setSession] = useState(undefined); // undefined = checking, null = signed out
   const [devMode, setDevMode] = useState(false); // local-only mode: no account, no Supabase, books stay on this device only
-  const [authMode, setAuthMode] = useState('signIn'); // 'signIn' | 'signUp'
+  const [authMode, setAuthMode] = useState('signIn'); // 'signIn' | 'signUp' | 'forgot'
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -1829,7 +1853,13 @@ function App() {
     setAuthNotice('');
     setAuthLoading(true);
     try {
-      if (authMode === 'signUp') {
+      if (authMode === 'forgot') {
+        const {
+          error
+        } = await supabaseClient.auth.resetPasswordForEmail(authEmail);
+        if (error) throw error;
+        setAuthNotice('Check your email for a link to reset your password.');
+      } else if (authMode === 'signUp') {
         const {
           data,
           error
@@ -2225,7 +2255,7 @@ function App() {
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)'
       }
-    }), /*#__PURE__*/React.createElement("input", {
+    }), authMode !== 'forgot' && /*#__PURE__*/React.createElement("input", {
       type: "password",
       required: true,
       placeholder: "Password",
@@ -2240,7 +2270,19 @@ function App() {
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)'
       }
-    }), authError && /*#__PURE__*/React.createElement("p", {
+    }), authMode === 'signIn' && /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        setAuthMode('forgot');
+        setAuthError('');
+        setAuthNotice('');
+      },
+      className: "text-right text-xs font-mono -mt-1",
+      style: {
+        color: chromeTheme.ink,
+        opacity: 0.65
+      }
+    }, "Forgot password?"), authError && /*#__PURE__*/React.createElement("p", {
       className: "text-xs",
       style: {
         color: '#ffd9df'
@@ -2258,9 +2300,9 @@ function App() {
         background: chromeTheme.playBg,
         color: chromeTheme.playIcon
       }
-    }, authLoading ? 'One moment…' : authMode === 'signUp' ? 'Create account' : 'Sign in')), /*#__PURE__*/React.createElement("button", {
+    }, authLoading ? 'One moment…' : authMode === 'forgot' ? 'Send reset link' : authMode === 'signUp' ? 'Create account' : 'Sign in')), /*#__PURE__*/React.createElement("button", {
       onClick: () => {
-        setAuthMode(m => m === 'signUp' ? 'signIn' : 'signUp');
+        setAuthMode(m => m === 'forgot' ? 'signIn' : m === 'signUp' ? 'signIn' : 'signUp');
         setAuthError('');
         setAuthNotice('');
       },
@@ -2269,7 +2311,7 @@ function App() {
         color: chromeTheme.ink,
         opacity: 0.75
       }
-    }, authMode === 'signUp' ? 'Have an account? Sign in' : "New here? Create an account"), /*#__PURE__*/React.createElement("button", {
+    }, authMode === 'forgot' ? 'Back to sign in' : authMode === 'signUp' ? 'Have an account? Sign in' : "New here? Create an account"), /*#__PURE__*/React.createElement("button", {
       onClick: () => setDevMode(true),
       className: "w-full text-center mt-6 transition-colors",
       style: {
