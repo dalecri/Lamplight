@@ -1,1 +1,221 @@
+:root {
+      --ink: #211f30;
+      --paper: #e9e4f0;
+      --surface: #29273c;
+      --surface-2: #302d46;
+      --amber: #a893c9;
+      --amber-soft: #a893c9;
+      --muted: #9089ab;
+      --line: rgba(168,147,201,0.18);
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overscroll-behavior: none; }
+    body {
+      margin: 0; padding: 0;
+      background: linear-gradient(160deg, #2a2136 0%, #241e30 100%);
+      background-attachment: fixed;
+      color: var(--paper);
+      font-family: 'Inter', sans-serif;
+      position: relative;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0.05;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .font-display { font-family: var(--font-display, 'Fraunces', serif); }
+    .font-mono { font-family: 'IBM Plex Mono', monospace; }
 
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .auth-input::placeholder { color: rgba(255,255,255,0.6); }
+
+    .spine-lift {
+      transform: rotate(var(--tilt, 0deg));
+      transition: transform 0.15s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .spine-lift:hover { transform: rotate(var(--tilt, 0deg)) translateY(-10px); }
+    }
+
+    .spine-mobile-wrap {
+      position: relative;
+      width: var(--sw);
+      height: var(--sh);
+    }
+    .spine-mobile-wrap.stack-mode {
+      width: var(--ml) !important;
+      height: var(--swm) !important;
+    }
+    .spine-mobile-wrap.stack-mode .spine-lift {
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      width: var(--swm) !important;
+      height: var(--ml) !important;
+      transform: translate(-50%, -50%) rotate(-90deg) !important;
+      transform-origin: center !important;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .spine-mobile-wrap.stack-mode .spine-lift:hover {
+        transform: translate(-50%, -50%) rotate(-90deg) translateY(-10px) !important;
+      }
+    }
+    .spine-mobile-wrap.stack-mode .icon-upright {
+      --tw-rotate: 90deg !important;
+    }
+
+    @keyframes cloudFloat {
+      0% { transform: translateX(-30vw); opacity: 0; }
+      10% { opacity: var(--cloud-op, 1); }
+      90% { opacity: var(--cloud-op, 1); }
+      100% { transform: translateX(130vw); opacity: 0; }
+    }
+    .sky-cloud-anim { animation-name: cloudFloat; animation-timing-function: linear; animation-iteration-count: infinite; }
+
+    @keyframes starTwinkle {
+      0%, 100% { opacity: var(--star-op, 0.6); }
+      15% { opacity: calc(var(--star-op, 0.6) * 0.15); }
+      30% { opacity: var(--star-op, 0.6); }
+      45% { opacity: calc(var(--star-op, 0.6) * 0.35); }
+      60% { opacity: var(--star-op, 0.6); }
+    }
+    .sky-star-anim { animation: starTwinkle 2.6s ease-in-out infinite; }
+    .sky-star-anim:nth-of-type(2n) { animation-delay: -0.7s; }
+    .sky-star-anim:nth-of-type(3n) { animation-delay: -1.3s; }
+    .sky-star-anim:nth-of-type(4n) { animation-delay: -0.4s; }
+
+    /* Shooting star: one smooth linear travel-and-fade per loop, occupying only the first
+       slice of the animation's total duration — the rest of the duration is an invisible
+       pause, so with varied per-instance durations/delays they each streak by "every so
+       often" rather than all constantly. No stepping: transform and opacity animate together
+       on the same element as one continuous motion, matching whatever angle the wrapper div
+       is rotated to (the sprite artwork itself is drawn as a pure horizontal streak, so it
+       always visually points the same way it travels). */
+    @keyframes shootMove {
+      0% { opacity: 0; transform: translateX(-8vw); }
+      2% { opacity: 1; }
+      13% { opacity: 1; transform: translateX(55vw); }
+      17% { opacity: 0; transform: translateX(70vw); }
+      17.01% { opacity: 0; transform: translateX(-8vw); }
+      100% { opacity: 0; transform: translateX(-8vw); }
+    }
+    .sky-shoot-move {
+      animation-name: shootMove;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+
+    .cute-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 20px;
+      background: transparent;
+      cursor: pointer;
+      margin: 0;
+    }
+    .cute-slider::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: linear-gradient(to right, #ffd77a var(--pct, 50%), rgba(255,255,255,0.18) var(--pct, 50%));
+    }
+    .cute-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      background: #ffffff;
+      margin-top: -6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+    }
+    .cute-slider::-moz-range-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.18);
+    }
+    .cute-slider::-moz-range-progress {
+      height: 6px;
+      border-radius: 9999px;
+      background: #ffd77a;
+    }
+    .cute-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      background: #ffffff;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+    }
+
+    .reading-page { width: 100%; max-width: 640px; }
+    @media (min-width: 768px) {
+      .reading-page { max-width: 760px; }
+    }
+    @media (min-width: 1100px) {
+      .reading-page { max-width: 860px; }
+    }
+
+    @keyframes page-in {
+      from { opacity: 0; transform: translateX(10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .reading-page-anim { animation: page-in 0.22s ease; }
+    @media (prefers-reduced-motion: reduce) {
+      .reading-page-anim { animation: none; }
+    }
+
+    @keyframes book-open {
+      from { opacity: 0; transform: scale(0.94) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .book-open-anim { animation: book-open 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @media (prefers-reduced-motion: reduce) {
+      .book-open-anim { animation: none; }
+    }
+
+    .glow {
+      background: radial-gradient(circle, rgba(168,147,201,0.4) 0%, rgba(168,147,201,0) 70%);
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 20px; width: 20px;
+      border-radius: 50%;
+      background: var(--amber-soft);
+      box-shadow: 0 0 10px rgba(168,147,201,0.6);
+      margin-top: -8px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      -webkit-appearance: none;
+      height: 4px;
+      background: rgba(244,234,217,0.15);
+      border-radius: 4px;
+    }
+    input[type=range]::-moz-range-thumb {
+      height: 20px; width: 20px;
+      border: none;
+      border-radius: 50%;
+      background: var(--amber-soft);
+      box-shadow: 0 0 10px rgba(168,147,201,0.6);
+    }
+    input[type=range]::-moz-range-track {
+      height: 4px;
+      background: rgba(244,234,217,0.15);
+      border-radius: 4px;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50% { opacity: 0.9; transform: scale(1.12); }
+    }
+    .pivot-glow { animation: pulse-glow 1.6s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      .pivot-glow { animation: none; }
+    }
