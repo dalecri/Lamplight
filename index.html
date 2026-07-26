@@ -177,6 +177,11 @@
 
     .reading-page { width: 100%; max-width: 640px; }
     ::selection { background: var(--selection-bg, rgba(168,147,201,0.35)); }
+    .select-text {
+      -webkit-touch-callout: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
     @media (min-width: 768px) {
       .reading-page { max-width: 760px; }
     }
