@@ -176,6 +176,7 @@
     }
 
     .reading-page { width: 100%; max-width: 640px; }
+    ::selection { background: var(--selection-bg, rgba(168,147,201,0.35)); }
     @media (min-width: 768px) {
       .reading-page { max-width: 760px; }
     }
@@ -277,10 +278,12 @@ const SkipForward = ({size = 24, className = ""}) => /*#__PURE__*/React.createEl
 const Eye = ({size = 24, className = ""}) => /*#__PURE__*/React.createElement("svg", {width: size, height: size, viewBox: "0 0 24 24", className: className, ...IconProps}, /*#__PURE__*/React.createElement("path", {d: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"}), /*#__PURE__*/React.createElement("circle", {cx: "12", cy: "12", r: "3"}));
 const EyeOff = ({size = 24, className = ""}) => /*#__PURE__*/React.createElement("svg", {width: size, height: size, viewBox: "0 0 24 24", className: className, ...IconProps}, /*#__PURE__*/React.createElement("path", {d: "M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.87 20.87 0 0 1 5.06-5.94"}), /*#__PURE__*/React.createElement("path", {d: "M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a20.87 20.87 0 0 1-2.16 3.19"}), /*#__PURE__*/React.createElement("path", {d: "M14.12 14.12a3 3 0 1 1-4.24-4.24"}), /*#__PURE__*/React.createElement("line", {x1: "1", y1: "1", x2: "23", y2: "23"}));
 const Zap = ({size = 24, className = ""}) => /*#__PURE__*/React.createElement("svg", {width: size, height: size, viewBox: "0 0 24 24", className: className, ...IconProps}, /*#__PURE__*/React.createElement("polygon", {points: "13 2 3 14 12 14 11 22 21 10 12 10 13 2"}));
+const Bookmark = ({size = 24, className = "", fill = "none"}) => /*#__PURE__*/React.createElement("svg", {width: size, height: size, viewBox: "0 0 24 24", fill: fill, className: className, ...IconProps}, /*#__PURE__*/React.createElement("path", {d: "M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"}));
 
 // --- Reading font themes ---
 const THEMES = [{id: 'serif', label: 'Serif', display: "'Fraunces', serif", glyph: 'Aa'}, {id: 'mono', label: 'Mono', display: "'IBM Plex Mono', monospace", glyph: '01'}, {id: 'sans', label: 'Sans', display: "'Inter', sans-serif", glyph: 'Aa'}];
 
+const PARA_BREAK = '\u00b6';
 const hashString = (str = '') => {
   let h = 0;
   for (let i = 0; i < str.length; i++) h = h * 31 + str.charCodeAt(i) >>> 0;
@@ -322,6 +325,22 @@ const isLightColor = hex => {
   const c = hex.replace('#', '');
   const r = parseInt(c.substr(0, 2), 16), g = parseInt(c.substr(2, 2), 16), b = parseInt(c.substr(4, 2), 16);
   return 0.299 * r + 0.587 * g + 0.114 * b > 150;
+};
+const lightenColor = (hex, amt) => {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substr(0, 2), 16), g = parseInt(c.substr(2, 2), 16), b = parseInt(c.substr(4, 2), 16);
+  const nr = Math.round(r + (255 - r) * amt);
+  const ng = Math.round(g + (255 - g) * amt);
+  const nb = Math.round(b + (255 - b) * amt);
+  return `rgb(${nr}, ${ng}, ${nb})`;
+};
+const darkenColor = (hex, amt) => {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substr(0, 2), 16), g = parseInt(c.substr(2, 2), 16), b = parseInt(c.substr(4, 2), 16);
+  const nr = Math.round(r * (1 - amt));
+  const ng = Math.round(g * (1 - amt));
+  const nb = Math.round(b * (1 - amt));
+  return `rgb(${nr}, ${ng}, ${nb})`;
 };
 const verticalTextStyle = flat => ({writingMode: 'vertical-rl', textOrientation: 'mixed', transform: flat ? 'rotate(0deg)' : 'rotate(180deg)', whiteSpace: 'nowrap', display: 'block', maxHeight: '100%', overflow: 'hidden'});
 const renderTemplateSpine = (tpl, title, flat) => {
@@ -398,10 +417,10 @@ const CuteSlider = ({label, value, min, max, step, onChange, displayValue, accen
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {className: "flex justify-between items-baseline mb-1.5"}, /*#__PURE__*/React.createElement("span", {className: "text-xs font-semibold truncate", style: {color: inkColor}}, label), /*#__PURE__*/React.createElement("span", {className: "text-xs font-bold shrink-0 ml-2", style: {color: accentColor}}, displayValue)), /*#__PURE__*/React.createElement("div", {className: "relative rounded-full overflow-hidden", style: {height: 10, background: `${inkColor}22`}}, /*#__PURE__*/React.createElement("div", {className: "absolute inset-y-0 left-0 rounded-full transition-[width] duration-100", style: {width: `${pct}%`, background: accentColor}}), /*#__PURE__*/React.createElement("input", {type: "range", min: min, max: max, step: step, value: value, onChange: e => onChange(Number(e.target.value)), className: "absolute w-full opacity-0 cursor-pointer", style: {height: 32, top: -11}})));
 };
 
-const READING_PRESETS = [{id: 'night', label: 'Night', bg: '#2a2136', ink: '#eee6f5', accent: '#b98fd9'}, {id: 'paper', label: 'Paper', bg: '#f3ede0', ink: '#3a3128', accent: '#c9793a'}, {id: 'day', label: 'Day', bg: '#4a55e0', ink: '#f2ecdd', accent: '#ffd77a'}, {id: 'dusk', label: 'Dusk', bg: '#2e1f2c', ink: '#f0dde8', accent: '#c97a9e'}];
+const READING_PRESETS = [{id: 'night', label: 'Night', bg: '#2a2136', ink: '#eee6f5', accent: '#b98fd9', sky: 'stars'}, {id: 'paper', label: 'Paper', bg: '#f3ede0', ink: '#3a3128', accent: '#c9793a', sky: 'clouds'}, {id: 'day', label: 'Day', bg: '#4a55e0', ink: '#f2ecdd', accent: '#ffd77a', sky: 'clouds'}, {id: 'dusk', label: 'Dusk', bg: '#2e1f2c', ink: '#f0dde8', accent: '#c97a9e', sky: 'stars'}];
 const READING_EXTRAS = [{id: 'ink', bg: '#17161c', ink: '#e7e3ef', accent: '#8f7cc7'}, {id: 'bluehour', bg: '#28344a', ink: '#e8ecf5', accent: '#7ba0d6'}, {id: 'clay', bg: '#e7d4c1', ink: '#4a2f1e', accent: '#c9793a'}, {id: 'moss', bg: '#1f2e22', ink: '#dfe8de', accent: '#7fa66c'}, {id: 'rosewood', bg: '#3a1620', ink: '#f0dfe2', accent: '#d97a93'}, {id: 'khaki', bg: '#c9c48a', ink: '#2b2438', accent: '#7a7a28'}, {id: 'sage', bg: '#e3e8dc', ink: '#33402f', accent: '#6b8a5a'}, {id: 'seafoam', bg: '#cfe4dc', ink: '#1f3a30', accent: '#3f8a72'}, {id: 'blush', bg: '#f0dbe0', ink: '#4a2634', accent: '#c65f7a'}];
 const READING_ALL = [...READING_PRESETS, ...READING_EXTRAS];
-const SORT_MODES = [{id: 'dateAdded', label: 'Newest'}, {id: 'lastOpened', label: 'Recent'}, {id: 'alphabetical', label: 'A–Z'}];
+const SORT_MODES = [{id: 'recent', label: 'Recent'}, {id: 'author', label: 'Author'}, {id: 'title', label: 'Title'}];
 const readingThemeTokens = t => ({bg: t.bg, ink: t.ink, pivot: t.accent, glow: t.accent, surface: `${t.ink}12`, line: `${t.ink}20`, track: `${t.ink}18`, muted: `${t.ink}90`, chip: `${t.accent}22`, chipText: t.accent, playBg: t.accent, playIcon: t.bg, panel: t.bg});
 
 // --- Local settings persistence (theme, shelf sizing, reading prefs) so the same
@@ -480,6 +499,36 @@ const RSVPWord = ({word, isPlaying, ink, pivotColor, glowColor, sizeScale = 1}) 
   const right = word.substring(orp + 1);
   return /*#__PURE__*/React.createElement("div", {className: "relative flex font-display font-medium tracking-tight items-center justify-center select-none w-full px-6", style: {fontSize: `clamp(${(2.75 * sizeScale).toFixed(2)}rem, ${(7 * sizeScale).toFixed(1)}vw, ${(4 * sizeScale).toFixed(2)}rem)`}}, /*#__PURE__*/React.createElement("div", {className: "flex-1 text-right whitespace-pre", style: {color: ink}}, left), /*#__PURE__*/React.createElement("div", {className: "relative flex justify-center w-[1.2ch]"}, /*#__PURE__*/React.createElement("div", {className: `absolute -inset-4 rounded-full ${isPlaying ? 'pivot-glow' : ''}`, style: {background: `radial-gradient(circle, ${glowColor}59 0%, ${glowColor}00 70%)`}}), /*#__PURE__*/React.createElement("span", {className: "relative", style: {color: pivotColor}}, mid)), /*#__PURE__*/React.createElement("div", {className: "flex-1 text-left whitespace-pre", style: {color: ink}}, right));
 };
+const renderRichSegment = (wordsSlice, startIndex, chapters) => {
+  const nodes = [];
+  let currentPara = [];
+  let paraStart = startIndex;
+  let key = 0;
+  const flush = () => {
+    if (currentPara.length > 0) {
+      nodes.push(/*#__PURE__*/React.createElement("p", {key: `p-${key++}`, "data-start": paraStart, className: "mb-[1.35em]"}, currentPara.join(' ')));
+      currentPara = [];
+    }
+  };
+  wordsSlice.forEach((w, i) => {
+    const absoluteIndex = startIndex + i;
+    const chapterHere = chapters?.find(c => c.index === absoluteIndex);
+    if (chapterHere) {
+      flush();
+      nodes.push(/*#__PURE__*/React.createElement("h3", {key: `h-${key++}`, "data-start": absoluteIndex, className: "font-display italic text-[1.5em] mt-[0.3em] mb-[0.9em] text-center"}, chapterHere.title));
+      paraStart = absoluteIndex;
+    }
+    if (w === PARA_BREAK) {
+      flush();
+      paraStart = absoluteIndex + 1;
+    } else {
+      if (currentPara.length === 0) paraStart = absoluteIndex;
+      currentPara.push(w);
+    }
+  });
+  flush();
+  return nodes;
+};
 function App() {
   const initialSettings = useMemo(() => loadSettings(), []);
   const [books, setBooks] = useState([]);
@@ -489,6 +538,11 @@ function App() {
   const [wordIndex, setWordIndex] = useState(0);
   const [isParsing, setIsParsing] = useState(false);
   const [showChapters, setShowChapters] = useState(false);
+  const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
+  const [selectionQuote, setSelectionQuote] = useState(null);
+  const [highlightQuoteId, setHighlightQuoteId] = useState(null);
+  const pagePRef = useRef(null);
+  const scrollPRef = useRef(null);
   const [themeIdx, setThemeIdx] = useState(initialSettings.themeIdx ?? 0);
   const [shelfScale, setShelfScale] = useState(initialSettings.shelfScale ?? 0.8);
   const [bookWidthScale, setBookWidthScale] = useState(initialSettings.bookWidthScale ?? 1.6);
@@ -500,13 +554,17 @@ function App() {
   const [mobileStackView, setMobileStackView] = useState(initialSettings.mobileStackView ?? true);
   const [skyAnimated, setSkyAnimated] = useState(initialSettings.skyAnimated ?? false);
   const [useCoverSpines, setUseCoverSpines] = useState(initialSettings.useCoverSpines ?? true);
-  const [sortMode, setSortMode] = useState(initialSettings.sortMode ?? 'dateAdded'); // 'dateAdded' | 'lastOpened' | 'alphabetical'
+  const [sortMode, setSortMode] = useState(initialSettings.sortMode ?? 'recent'); // 'recent' | 'author' | 'title'
   const [lastOpenedMap, setLastOpenedMap] = useState(initialSettings.lastOpenedMap ?? {});
+  const [bookmarks, setBookmarks] = useState(initialSettings.bookmarks ?? {});
   const [showShelfControls, setShowShelfControls] = useState(false);
   const theme = THEMES[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % THEMES.length);
   const [readingThemeId, setReadingThemeId] = useState(initialSettings.readingThemeId ?? 'night');
-  const isNight = !isLightColor((READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0]).bg);
+  const isNight = (() => {
+    const t = READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0];
+    return t.sky ? t.sky === 'stars' : !isLightColor(t.bg);
+  })();
   const chromeTheme = readingThemeTokens(READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0]);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const FONT_SIZES = [0.95, 1.05, 1.2, 1.35, 1.5];
@@ -529,8 +587,8 @@ function App() {
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
-    saveSettings({wpm, themeIdx, shelfScale, bookWidthScale, mobileStackView, skyAnimated, useCoverSpines, readingThemeId, fontSizeIdx, textAlign, pageMode, sortMode, lastOpenedMap});
-  }, [wpm, themeIdx, shelfScale, bookWidthScale, mobileStackView, skyAnimated, useCoverSpines, readingThemeId, fontSizeIdx, textAlign, pageMode, sortMode, lastOpenedMap]);
+    saveSettings({wpm, themeIdx, shelfScale, bookWidthScale, mobileStackView, skyAnimated, useCoverSpines, readingThemeId, fontSizeIdx, textAlign, pageMode, sortMode, lastOpenedMap, bookmarks});
+  }, [wpm, themeIdx, shelfScale, bookWidthScale, mobileStackView, skyAnimated, useCoverSpines, readingThemeId, fontSizeIdx, textAlign, pageMode, sortMode, lastOpenedMap, bookmarks]);
   useEffect(() => {
     supabaseClient.auth.getSession().then(({data}) => setSession(data.session));
     const {data: listener} = supabaseClient.auth.onAuthStateChange((_event, newSession) => {
@@ -738,15 +796,27 @@ function App() {
           try {
             const doc = await item.load(book.load.bind(book));
             if (doc) {
-              let textContent = "";
+              let bodyEl = null;
               if (typeof doc === 'string') {
                 const parser = new DOMParser();
                 const parsed = parser.parseFromString(doc, "text/html");
-                textContent = parsed.body ? parsed.body.textContent : parsed.textContent || "";
+                bodyEl = parsed.body;
               } else {
-                textContent = (doc.body ? doc.body.textContent : doc.textContent) || "";
+                bodyEl = doc.body || doc;
               }
-              const cleanWords = textContent.trim().split(/\s+/).filter(Boolean);
+              const blocks = bodyEl ? Array.from(bodyEl.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote')) : [];
+              let cleanWords = [];
+              blocks.forEach(block => {
+                const t = (block.textContent || '').trim();
+                if (!t) return;
+                const w = t.split(/\s+/).filter(Boolean);
+                if (cleanWords.length > 0) cleanWords.push(PARA_BREAK);
+                cleanWords = cleanWords.concat(w);
+              });
+              if (cleanWords.length === 0) {
+                const fallbackText = (bodyEl ? bodyEl.textContent : '') || '';
+                cleanWords = fallbackText.trim().split(/\s+/).filter(Boolean);
+              }
               if (cleanWords.length > 0) {
                 let chapterTitle = `Section ${i + 1}`;
                 const matchedToc = tocList.find(t => t.href.includes(item.idref) || item.href.includes(t.href.split('#')[0]));
@@ -778,6 +848,99 @@ function App() {
     };
     reader.readAsArrayBuffer(file);
   };
+  const activeBookmarks = activeBook ? (bookmarks[activeBook.id] || []) : [];
+  const saveQuote = (text, atWordIndex) => {
+    if (!activeBook || !text) return;
+    const entry = {id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: text.slice(0, 400), wordIndex: atWordIndex, createdAt: Date.now()};
+    setBookmarks(prev => ({...prev, [activeBook.id]: [...(prev[activeBook.id] || []), entry]}));
+  };
+  const deleteQuote = id => {
+    if (!activeBook) return;
+    setBookmarks(prev => ({...prev, [activeBook.id]: (prev[activeBook.id] || []).filter(q => q.id !== id)}));
+  };
+  const jumpToQuote = q => {
+    setWordIndex(q.wordIndex);
+    setIsPlaying(false);
+    setShowBookmarksPanel(false);
+    setHighlightQuoteId(q.id);
+    if (pageMode === 'scroll' && scrollContainerRef.current) {
+      requestAnimationFrame(() => {
+        const el = scrollContainerRef.current;
+        if (!el || !activeBook) return;
+        const ratio = q.wordIndex / Math.max(1, activeBook.words.length - 1);
+        el.scrollTop = ratio * Math.max(0, el.scrollHeight - el.clientHeight);
+      });
+    }
+  };
+  const handleTextSelection = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) { setSelectionQuote(null); return; }
+    setHighlightQuoteId(null);
+    try {
+      const text = sel.toString().trim();
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const container = range.startContainer;
+      const el = container.nodeType === 1 ? container : container.parentElement;
+      const ancestor = el ? el.closest('[data-start]') : null;
+      const paraStart = ancestor ? (parseInt(ancestor.dataset.start, 10) || 0) : 0;
+      const fullText = container.textContent || '';
+      const before = fullText.slice(0, range.startOffset);
+      const wordOffset = before.trim().length ? before.trim().split(/\s+/).filter(Boolean).length : 0;
+      setSelectionQuote({text, wordIndex: paraStart + wordOffset, top: rect.top, left: rect.left + rect.width / 2});
+    } catch (e) {
+      setSelectionQuote(null);
+    }
+  };
+  useEffect(() => {
+    const onSelectionChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        setSelectionQuote(null);
+        setHighlightQuoteId(null);
+      }
+    };
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => document.removeEventListener('selectionchange', onSelectionChange);
+  }, []);
+  useEffect(() => {
+    if (!highlightQuoteId || !activeBook) return;
+    const q = activeBookmarks.find(x => x.id === highlightQuoteId);
+    if (!q) { setHighlightQuoteId(null); return; }
+    const raf = requestAnimationFrame(() => {
+      try {
+        const container = pageMode === 'scroll' ? scrollPRef.current : pagePRef.current;
+        if (!container) return;
+        const blocks = Array.from(container.querySelectorAll('[data-start]'));
+        let target = null;
+        for (const b of blocks) {
+          const s = parseInt(b.dataset.start, 10);
+          if (s <= q.wordIndex) target = b; else break;
+        }
+        if (!target) return;
+        const paraStart = parseInt(target.dataset.start, 10);
+        const localWordOffset = q.wordIndex - paraStart;
+        const text = target.textContent || '';
+        const wordsInPara = text.split(' ');
+        const charOffset = wordsInPara.slice(0, Math.max(0, localWordOffset)).join(' ').length + (localWordOffset > 0 ? 1 : 0);
+        const node = target.firstChild;
+        if (!node || node.nodeType !== 3) return;
+        const textLen = node.textContent.length;
+        const start = Math.min(Math.max(0, charOffset), textLen);
+        const end = Math.min(start + q.text.length, textLen);
+        if (end <= start) return;
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, end);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } catch (e) {
+        /* selection restore failed silently */
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [highlightQuoteId, activeBook, pageMode, pageStart]);
   const openBook = book => {
     setActiveBook(book);
     setWordIndex(book.progress || 0);
@@ -822,12 +985,12 @@ function App() {
   const currentChapterIdx = activeBook ? activeBook.chapters?.findLastIndex(c => c.index <= wordIndex) ?? -1 : -1;
   const sortedBooks = useMemo(() => {
     const arr = [...books];
-    if (sortMode === 'alphabetical') {
+    if (sortMode === 'title') {
       arr.sort((a, b) => a.title.trim().toLowerCase().localeCompare(b.title.trim().toLowerCase()));
-    } else if (sortMode === 'lastOpened') {
-      arr.sort((a, b) => (lastOpenedMap[b.id] || 0) - (lastOpenedMap[a.id] || 0));
+    } else if (sortMode === 'author') {
+      arr.sort((a, b) => (a.author || '').trim().toLowerCase().localeCompare((b.author || '').trim().toLowerCase()));
     } else {
-      arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      arr.sort((a, b) => (lastOpenedMap[b.id] || 0) - (lastOpenedMap[a.id] || 0));
     }
     return arr;
   }, [books, sortMode, lastOpenedMap]);
@@ -878,22 +1041,31 @@ function App() {
   }
   return /*#__PURE__*/React.createElement("div", {className: "w-full", style: {height: '100dvh', '--font-display': theme.display}}, activeBook ?
   /*#__PURE__*/
-  React.createElement("div", {className: "fixed inset-0 flex flex-col overflow-hidden transition-colors duration-300 book-open-anim", style: {background: readerTheme.bg}}, showControls && /*#__PURE__*/React.createElement("header", {className: "flex items-center gap-2 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-3 shrink-0"}, /*#__PURE__*/React.createElement("button", {onClick: closeBook, className: "flex items-center gap-1 shrink-0 transition-colors text-sm font-medium py-2 pr-2 -ml-1", style: {color: readerTheme.muted}}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 18}), " Shelf"), /*#__PURE__*/React.createElement("div", {className: "flex-1 min-w-0 text-center px-1"}, /*#__PURE__*/React.createElement("span", {className: "font-display italic text-sm truncate block", style: {color: readerTheme.muted}}, activeBook.title), activeBook.author && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px] uppercase tracking-wide truncate block mt-0.5", style: {color: readerTheme.muted, opacity: 0.6}}, activeBook.author)), /*#__PURE__*/React.createElement("div", {className: "w-[124px] shrink-0"})), /*#__PURE__*/React.createElement("div", {className: "absolute z-40 flex items-center gap-1", style: {top: 'max(1.1rem, env(safe-area-inset-top))', right: '1.1rem'}}, showControls && /*#__PURE__*/React.createElement("button", {onClick: e => {
+  React.createElement("div", {className: "fixed inset-0 flex flex-col overflow-hidden transition-colors duration-300 book-open-anim", style: {background: readerTheme.bg, '--selection-bg': `${readerTheme.pivot}40`}}, showControls && /*#__PURE__*/React.createElement("header", {className: "flex items-center gap-2 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-3 shrink-0"}, /*#__PURE__*/React.createElement("button", {onClick: closeBook, className: "flex items-center gap-1 shrink-0 transition-colors text-sm font-medium py-2 pr-2 -ml-1", style: {color: readerTheme.muted}}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 18}), " Shelf"), /*#__PURE__*/React.createElement("div", {className: "flex-1 min-w-0 text-center px-1"}, /*#__PURE__*/React.createElement("span", {className: "font-display italic text-sm truncate block", style: {color: readerTheme.muted}}, activeBook.title), activeBook.author && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px] uppercase tracking-wide truncate block mt-0.5", style: {color: readerTheme.muted, opacity: 0.6}}, activeBook.author)), /*#__PURE__*/React.createElement("div", {className: "w-[124px] shrink-0"})), /*#__PURE__*/React.createElement("div", {className: "absolute z-40 flex items-center gap-1", style: {top: 'max(1.1rem, env(safe-area-inset-top))', right: '1.1rem'}}, showControls && /*#__PURE__*/React.createElement("button", {onClick: e => {
       e.stopPropagation();
       setShowThemePicker(true);
     }, className: "w-9 h-9 flex items-center justify-center rounded-full transition-colors", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.muted}, "aria-label": "Customize"}, /*#__PURE__*/React.createElement(Sliders, {size: 15})), showControls && /*#__PURE__*/React.createElement("button", {onClick: e => {
+      e.stopPropagation();
+      setShowBookmarksPanel(true);
+    }, className: "w-9 h-9 flex items-center justify-center rounded-full transition-colors", style: {border: `1px solid ${readerTheme.line}`, color: activeBookmarks.length > 0 ? readerTheme.pivot : readerTheme.muted}, "aria-label": "Saved quotes"}, /*#__PURE__*/React.createElement(Bookmark, {size: 15, fill: activeBookmarks.length > 0 ? "currentColor" : "none"})), showControls && /*#__PURE__*/React.createElement("button", {onClick: e => {
       e.stopPropagation();
       setIsPlaying(false);
       setReadMode(m => m === 'rsvp' ? 'normal' : 'rsvp');
     }, className: "w-9 h-9 flex items-center justify-center rounded-full transition-colors", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.muted}, "aria-label": readMode === 'rsvp' ? 'Switch to normal reading' : 'Switch to flow reading'}, readMode === 'rsvp' ? /*#__PURE__*/React.createElement(BookOpen, {size: 16}) : /*#__PURE__*/React.createElement(Zap, {size: 16})), /*#__PURE__*/React.createElement("button", {onClick: e => {
       e.stopPropagation();
       setShowControls(s => !s);
-    }, className: "w-9 h-9 flex items-center justify-center rounded-full transition-opacity", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.muted, opacity: showControls ? 0.9 : 0.4}, "aria-label": showControls ? 'Hide controls' : 'Show controls'}, showControls ? /*#__PURE__*/React.createElement(EyeOff, {size: 16}) : /*#__PURE__*/React.createElement(Eye, {size: 16}))), readMode === 'rsvp' ? /*#__PURE__*/React.createElement("main", {className: "flex-1 flex items-center justify-center relative cursor-pointer", onClick: () => setIsPlaying(!isPlaying)}, isNight ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '12%', left: '14%', width: 9, height: 9, opacity: 0.35, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '22%', right: '18%', width: 7, height: 7, opacity: 0.25}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {bottom: '18%', left: '22%', width: 6, height: 6, opacity: 0.2}, color: readerTheme.ink})) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '10%', right: '12%', width: 44, height: 28, opacity: 0.18, '--cloud-op': 0.18, animationDuration: '170.8s', animationDelay: '-4s'}}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {bottom: '14%', left: '10%', width: 34, height: 22, opacity: 0.14, '--cloud-op': 0.14, animationDuration: '223.6s', animationDelay: '-30s'}})), /*#__PURE__*/React.createElement(RSVPWord, {word: activeBook.words[wordIndex] || "The end.", isPlaying: isPlaying, ink: readerTheme.ink, pivotColor: readerTheme.pivot, glowColor: readerTheme.glow, sizeScale: FONT_SIZES[fontSizeIdx] / FONT_SIZES[1]})) : (pageMode === 'scroll' ? /*#__PURE__*/React.createElement("main", {className: "flex-1 overflow-y-auto no-scrollbar", ref: scrollContainerRef, onScroll: e => {
+    }, className: "w-9 h-9 flex items-center justify-center rounded-full transition-opacity", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.muted, opacity: showControls ? 0.9 : 0.4}, "aria-label": showControls ? 'Hide controls' : 'Show controls'}, showControls ? /*#__PURE__*/React.createElement(EyeOff, {size: 16}) : /*#__PURE__*/React.createElement(Eye, {size: 16}))), selectionQuote && /*#__PURE__*/React.createElement("button", {onClick: () => {
+      saveQuote(selectionQuote.text, selectionQuote.wordIndex);
+      window.getSelection()?.removeAllRanges();
+      setSelectionQuote(null);
+    }, className: "fixed z-50 px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform", style: {top: Math.max(8, selectionQuote.top - 46), left: selectionQuote.left, transform: 'translateX(-50%)', background: darkenColor(readerTheme.pivot, 0.72), border: `1.5px solid ${readerTheme.pivot}`, color: lightenColor(readerTheme.pivot, 0.35), boxShadow: '0 6px 16px rgba(0,0,0,0.35)'}}, "Highlight"), readMode === 'rsvp' ? /*#__PURE__*/React.createElement("main", {className: "flex-1 flex items-center justify-center relative cursor-pointer", onClick: () => setIsPlaying(!isPlaying)}, isNight ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '12%', left: '14%', width: 9, height: 9, opacity: 0.35, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '22%', right: '18%', width: 7, height: 7, opacity: 0.25}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {bottom: '18%', left: '22%', width: 6, height: 6, opacity: 0.2}, color: readerTheme.ink})) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '10%', right: '12%', width: 44, height: 28, opacity: 0.18, '--cloud-op': 0.18, animationDuration: '170.8s', animationDelay: '-4s'}}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {bottom: '14%', left: '10%', width: 34, height: 22, opacity: 0.14, '--cloud-op': 0.14, animationDuration: '223.6s', animationDelay: '-30s'}})), /*#__PURE__*/React.createElement(RSVPWord, {word: activeBook.words[wordIndex] || "The end.", isPlaying: isPlaying, ink: readerTheme.ink, pivotColor: readerTheme.pivot, glowColor: readerTheme.glow, sizeScale: FONT_SIZES[fontSizeIdx] / FONT_SIZES[1]})) : (pageMode === 'scroll' ? /*#__PURE__*/React.createElement("main", {className: "flex-1 overflow-y-auto no-scrollbar", ref: scrollContainerRef, onScroll: e => {
       if (!activeBook) return;
       const el = e.currentTarget;
       const ratio = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight);
       setWordIndex(Math.round(ratio * (activeBook.words.length - 1)));
-    }}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto px-8 lg:px-16 pt-6 pb-24"}, /*#__PURE__*/React.createElement("p", {className: "font-display leading-[1.85]", style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, activeBook ? activeBook.words.join(' ') : ''))) : /*#__PURE__*/React.createElement("main", {className: "flex-1 relative overflow-hidden", onClick: e => {
+    }}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto px-8 lg:px-16 pt-6 pb-24"}, /*#__PURE__*/React.createElement("div", {ref: scrollPRef, className: "font-display leading-[1.85] select-text", onMouseUp: () => handleTextSelection(), onTouchEnd: () => setTimeout(() => handleTextSelection(), 0), style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, activeBook ? renderRichSegment(activeBook.words, 0, activeBook.chapters) : ''))) : /*#__PURE__*/React.createElement("main", {className: "flex-1 relative overflow-hidden", onClick: e => {
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim()) return;
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       if (x < rect.width * 0.32) goBackPage();else if (x > rect.width * 0.68) goForwardPage();
@@ -906,7 +1078,7 @@ function App() {
       if (Math.abs(deltaX) > 48) {
         if (deltaX < 0) goForwardPage();else goBackPage();
       }
-    }}, /*#__PURE__*/React.createElement("div", {key: pageStart, className: "absolute inset-0 reading-page-anim"}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto h-full px-8 lg:px-16 pt-6 pb-14"}, /*#__PURE__*/React.createElement("div", {ref: pageBoxRef, className: "h-full overflow-hidden flex flex-col", style: {justifyContent: showControls ? 'flex-start' : 'center'}}, /*#__PURE__*/React.createElement("div", {ref: pageContentRef}, /*#__PURE__*/React.createElement("p", {className: "font-display leading-[1.85]", style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, pageWords.join(' ')))))), /*#__PURE__*/React.createElement("button", {onClick: e => {
+    }}, /*#__PURE__*/React.createElement("div", {key: pageStart, className: "absolute inset-0 reading-page-anim"}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto h-full px-8 lg:px-16 pt-6 pb-14"}, /*#__PURE__*/React.createElement("div", {ref: pageBoxRef, className: "h-full overflow-hidden flex flex-col", style: {justifyContent: showControls ? 'flex-start' : 'center'}}, /*#__PURE__*/React.createElement("div", {ref: pageContentRef}, /*#__PURE__*/React.createElement("div", {ref: pagePRef, className: "font-display leading-[1.85] select-text", onMouseUp: () => handleTextSelection(), onTouchEnd: () => setTimeout(() => handleTextSelection(), 0), style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, renderRichSegment(pageWords, pageStart, activeBook.chapters)))))), /*#__PURE__*/React.createElement("button", {onClick: e => {
       e.stopPropagation();
       goBackPage();
     }, disabled: isFirstPage, className: "hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-opacity disabled:opacity-0", style: {color: readerTheme.muted}, "aria-label": "Previous page"}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 20})), /*#__PURE__*/React.createElement("button", {onClick: e => {
@@ -922,7 +1094,7 @@ function App() {
         setShowChapters(false);
         setIsPlaying(false);
       }, className: "text-left px-4 py-3 rounded-xl text-sm transition-colors", style: isCurrent ? {background: readerTheme.chip, color: readerTheme.chipText, fontWeight: 500} : {color: readerTheme.muted}}, chap.title);
-  })))), showThemePicker && /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 z-40", onClick: () => setShowThemePicker(false)}), /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 z-50 flex items-center justify-center px-5 transition-all duration-200 ease-out", style: {opacity: showThemePicker ? 1 : 0, transform: showThemePicker ? 'scale(1)' : 'scale(0.94)', pointerEvents: showThemePicker ? 'auto' : 'none'}}, /*#__PURE__*/React.createElement("div", {className: "w-full max-w-sm rounded-3xl overflow-y-auto", style: {background: `${readerTheme.panel}f2`, border: `1px solid ${readerTheme.line}`, boxShadow: '0 20px 50px -12px rgba(0,0,0,0.5)', maxHeight: '80vh'}, onClick: e => e.stopPropagation()}, /*#__PURE__*/React.createElement("div", {className: "px-5 pt-4 pb-3 flex justify-between items-center"}, /*#__PURE__*/React.createElement("h3", {className: "font-display italic text-lg", style: {color: readerTheme.ink}}, "Customize"), /*#__PURE__*/React.createElement("button", {onClick: () => setShowThemePicker(false), className: "p-1", style: {color: readerTheme.muted}}, /*#__PURE__*/React.createElement(X, {size: 18}))), readMode === 'rsvp' ? /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement(CuteSlider, {label: "Reading speed", value: wpm, min: 100, max: 1000, step: 50, onChange: setWpm, displayValue: `${wpm} wpm`, accentColor: readerTheme.chipText, inkColor: readerTheme.ink})) : /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Page navigation"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-2 gap-1.5"}, [{id: 'paginated', label: 'Swipe'}, {id: 'scroll', label: 'Scroll'}].map(m => /*#__PURE__*/React.createElement("button", {key: m.id, onClick: () => setPageMode(m.id), className: "px-2 py-1.5 rounded-lg text-xs font-semibold text-center transition-colors", style: {background: pageMode === m.id ? "rgba(255,255,255,0.08)" : "transparent", border: `1px solid ${pageMode === m.id ? readerTheme.chipText : "rgba(255,255,255,0.15)"}`, color: readerTheme.ink}}, m.label)))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Font"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-3 gap-1.5"}, THEMES.map((t, i) => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => setThemeIdx(i), className: "flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-sm transition-colors", style: {background: i === themeIdx ? `${readerTheme.ink}12` : 'transparent', border: `1px solid ${i === themeIdx ? readerTheme.chipText : readerTheme.line}`, color: readerTheme.ink}}, /*#__PURE__*/React.createElement("span", {style: {fontFamily: t.display}, className: "text-sm leading-none"}, t.glyph), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[8px] uppercase tracking-wide", style: {color: readerTheme.muted}}, t.label))))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Text size · normal reading"), /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between gap-2"}, /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.max(0, i - 1)), disabled: fontSizeIdx === 0, className: "w-8 h-8 flex items-center justify-center rounded-full transition-colors disabled:opacity-30", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.ink}, "aria-label": "Decrease text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-xs"}, "A")), /*#__PURE__*/React.createElement("div", {className: "flex-1 flex items-center justify-center gap-1.5"}, FONT_SIZES.map((_, i) => /*#__PURE__*/React.createElement("span", {key: i, className: "rounded-full", style: {width: 5, height: 5, background: i === fontSizeIdx ? readerTheme.chipText : readerTheme.line}}))), /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.min(FONT_SIZES.length - 1, i + 1)), disabled: fontSizeIdx === FONT_SIZES.length - 1, className: "w-8 h-8 flex items-center justify-center rounded-full transition-colors disabled:opacity-30", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.ink}, "aria-label": "Increase text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-base"}, "A")))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Text align \u00b7 normal reading"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-3 gap-1.5"}, [{id: 'left', label: 'Left'}, {id: 'center', label: 'Center'}, {id: 'justify', label: 'Justify'}].map(a => /*#__PURE__*/React.createElement("button", {key: a.id, onClick: () => setTextAlign(a.id), className: "px-2 py-1.5 rounded-lg text-xs font-semibold text-center transition-colors", style: {background: textAlign === a.id ? "rgba(255,255,255,0.08)" : "transparent", border: `1px solid ${textAlign === a.id ? readerTheme.chipText : "rgba(255,255,255,0.15)"}`, color: readerTheme.ink}}, a.label)))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Reading theme"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-2 gap-1.5"}, READING_PRESETS.map(t => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => setReadingThemeId(t.id), className: "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors", style: {background: t.id === readingThemeId ? "rgba(255,255,255,0.08)" : "transparent", border: `1px solid ${t.id === readingThemeId ? readerTheme.chipText : "rgba(255,255,255,0.15)"}`, color: readerTheme.ink}}, /*#__PURE__*/React.createElement("span", {className: "w-4 h-4 rounded-full shrink-0", style: {background: t.bg, border: `1px solid ${t.ink}40`}}), t.label)))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"})))) :
+  })))), showBookmarksPanel && /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 z-50 flex flex-col justify-end"}, /*#__PURE__*/React.createElement("div", {className: "flex-1", onClick: () => setShowBookmarksPanel(false)}), /*#__PURE__*/React.createElement("div", {className: "rounded-t-3xl max-h-[65vh] flex flex-col transition-colors", style: {background: readerTheme.panel, borderTop: `1px solid ${readerTheme.line}`}}, /*#__PURE__*/React.createElement("div", {className: "flex justify-center pt-3"}, /*#__PURE__*/React.createElement("div", {className: "w-9 h-1 rounded-full", style: {background: readerTheme.line}})), /*#__PURE__*/React.createElement("div", {className: "px-5 py-4 flex justify-between items-center"}, /*#__PURE__*/React.createElement("h3", {className: "font-display italic text-lg", style: {color: readerTheme.ink}}, "Saved quotes"), /*#__PURE__*/React.createElement("button", {onClick: () => setShowBookmarksPanel(false), className: "p-1", style: {color: readerTheme.muted}}, /*#__PURE__*/React.createElement(X, {size: 18}))), activeBookmarks.length > 0 ? /*#__PURE__*/React.createElement("div", {className: "overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-1.5"}, [...activeBookmarks].sort((a, b) => a.wordIndex - b.wordIndex).map(q => /*#__PURE__*/React.createElement("div", {key: q.id, className: "flex items-start gap-2 px-3 py-2.5 rounded-xl transition-colors", style: {background: `${readerTheme.ink}0a`}}, /*#__PURE__*/React.createElement("button", {onClick: () => jumpToQuote(q), className: "flex-1 text-left"}, /*#__PURE__*/React.createElement("p", {className: "font-display italic text-sm leading-snug line-clamp-3", style: {color: readerTheme.ink}}, "\u201c", q.text, "\u201d"), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] block mt-1", style: {color: readerTheme.muted}}, Math.round(q.wordIndex / Math.max(1, activeBook.words.length - 1) * 100), "% through")), /*#__PURE__*/React.createElement("button", {onClick: () => deleteQuote(q.id), className: "shrink-0 p-1.5 rounded-full transition-colors", style: {color: readerTheme.muted}, "aria-label": "Delete quote"}, /*#__PURE__*/React.createElement(X, {size: 14}))))) : /*#__PURE__*/React.createElement("div", {className: "px-5 pb-8 pt-1 text-center"}, /*#__PURE__*/React.createElement("p", {className: "text-sm", style: {color: readerTheme.muted}}, "No saved quotes yet."), /*#__PURE__*/React.createElement("p", {className: "font-mono text-[10px] mt-1", style: {color: readerTheme.muted, opacity: 0.7}}, "Select any text while reading to save it here.")))), showThemePicker && /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 z-40", onClick: () => setShowThemePicker(false)}), /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 z-50 flex items-center justify-center px-5 transition-all duration-200 ease-out", style: {opacity: showThemePicker ? 1 : 0, transform: showThemePicker ? 'scale(1)' : 'scale(0.94)', pointerEvents: showThemePicker ? 'auto' : 'none'}}, /*#__PURE__*/React.createElement("div", {className: "w-full max-w-sm rounded-3xl overflow-y-auto", style: {background: `${readerTheme.panel}f2`, border: `1px solid ${readerTheme.line}`, boxShadow: '0 20px 50px -12px rgba(0,0,0,0.5)', maxHeight: '80vh'}, onClick: e => e.stopPropagation()}, /*#__PURE__*/React.createElement("div", {className: "px-5 pt-4 pb-3 flex justify-between items-center"}, /*#__PURE__*/React.createElement("h3", {className: "font-display italic text-lg", style: {color: readerTheme.ink}}, "Customize"), /*#__PURE__*/React.createElement("button", {onClick: () => setShowThemePicker(false), className: "p-1", style: {color: readerTheme.muted}}, /*#__PURE__*/React.createElement(X, {size: 18}))), readMode === 'rsvp' ? /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement(CuteSlider, {label: "Reading speed", value: wpm, min: 100, max: 1000, step: 50, onChange: setWpm, displayValue: `${wpm} wpm`, accentColor: readerTheme.chipText, inkColor: readerTheme.ink})) : /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Page navigation"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-2 gap-1.5"}, [{id: 'paginated', label: 'Swipe'}, {id: 'scroll', label: 'Scroll'}].map(m => /*#__PURE__*/React.createElement("button", {key: m.id, onClick: () => setPageMode(m.id), className: "px-2 py-1.5 rounded-lg text-xs font-semibold text-center transition-colors", style: {background: pageMode === m.id ? "rgba(255,255,255,0.08)" : "transparent", border: `1px solid ${pageMode === m.id ? readerTheme.chipText : "rgba(255,255,255,0.15)"}`, color: readerTheme.ink}}, m.label)))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Font"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-3 gap-1.5"}, THEMES.map((t, i) => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => setThemeIdx(i), className: "flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-sm transition-colors", style: {background: i === themeIdx ? `${readerTheme.ink}12` : 'transparent', border: `1px solid ${i === themeIdx ? readerTheme.chipText : readerTheme.line}`, color: readerTheme.ink}}, /*#__PURE__*/React.createElement("span", {style: {fontFamily: t.display}, className: "text-sm leading-none"}, t.glyph), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[8px] uppercase tracking-wide", style: {color: readerTheme.muted}}, t.label))))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Text size · normal reading"), /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between gap-2"}, /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.max(0, i - 1)), disabled: fontSizeIdx === 0, className: "w-8 h-8 flex items-center justify-center rounded-full transition-colors disabled:opacity-30", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.ink}, "aria-label": "Decrease text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-xs"}, "A")), /*#__PURE__*/React.createElement("div", {className: "flex-1 flex items-center justify-center gap-1.5"}, FONT_SIZES.map((_, i) => /*#__PURE__*/React.createElement("span", {key: i, className: "rounded-full", style: {width: 5, height: 5, background: i === fontSizeIdx ? readerTheme.chipText : readerTheme.line}}))), /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.min(FONT_SIZES.length - 1, i + 1)), disabled: fontSizeIdx === FONT_SIZES.length - 1, className: "w-8 h-8 flex items-center justify-center rounded-full transition-colors disabled:opacity-30", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.ink}, "aria-label": "Increase text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-base"}, "A")))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Text align \u00b7 normal reading"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-3 gap-1.5"}, [{id: 'left', label: 'Left'}, {id: 'center', label: 'Center'}, {id: 'justify', label: 'Justify'}].map(a => /*#__PURE__*/React.createElement("button", {key: a.id, onClick: () => setTextAlign(a.id), className: "px-2 py-1.5 rounded-lg text-xs font-semibold text-center transition-colors", style: {background: textAlign === a.id ? "rgba(255,255,255,0.08)" : "transparent", border: `1px solid ${textAlign === a.id ? readerTheme.chipText : "rgba(255,255,255,0.15)"}`, color: readerTheme.ink}}, a.label)))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "Reading theme"), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-2 gap-1.5"}, READING_PRESETS.map(t => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => setReadingThemeId(t.id), className: "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors", style: {background: t.id === readingThemeId ? "rgba(255,255,255,0.08)" : "transparent", border: `1px solid ${t.id === readingThemeId ? readerTheme.chipText : "rgba(255,255,255,0.15)"}`, color: readerTheme.ink}}, /*#__PURE__*/React.createElement("span", {className: "w-4 h-4 rounded-full shrink-0", style: {background: t.bg, border: `1px solid ${t.ink}40`}}), t.label)))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-1.5", style: {color: readerTheme.muted}}, "More colors"), /*#__PURE__*/React.createElement("div", {className: "flex justify-between gap-1.5"}, READING_EXTRAS.map(t => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => setReadingThemeId(t.id), "aria-label": t.id, className: "w-6 h-6 shrink-0 rounded-full transition-transform active:scale-90", style: {background: t.bg, border: t.id === readingThemeId ? `2px solid ${readerTheme.chipText}` : '1px solid rgba(255,255,255,0.15)'}})))), /*#__PURE__*/React.createElement("div", {className: "px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"})))) :
   /*#__PURE__*/
   React.createElement("div", {className: "h-full flex flex-col overflow-hidden relative", style: {background: readerTheme.bg}}, isNight ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {onClick: () => setReadingThemeId('day'), className: "absolute z-20 active:scale-90 transition-transform", style: {top: '8%', right: '10%'}, "aria-label": "Switch to day"}, /*#__PURE__*/React.createElement(PixelMoon, {style: {width: 46, height: 46, opacity: 0.95}})), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '6%', left: '12%', width: 10, height: 10, opacity: 0.8}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '16%', left: '28%', width: 7, height: 7, opacity: 0.6}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '10%', right: '32%', width: 8, height: 8, opacity: 0.7}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '28%', left: '45%', width: 6, height: 6, opacity: 0.45}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '14%', left: '62%', width: 6, height: 6, opacity: 0.5}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '4%', left: '42%', width: 5, height: 5, opacity: 0.4}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '36%', left: '14%', width: 6, height: 6, opacity: 0.35}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '40%', right: '10%', width: 8, height: 8, opacity: 0.5}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '48%', left: '34%', width: 5, height: 5, opacity: 0.3}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '2%', right: '42%', width: 7, height: 7, opacity: 0.55}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '58%', left: '20%', width: 7, height: 7, opacity: 0.5}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '65%', right: '24%', width: 6, height: 6, opacity: 0.4}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '72%', left: '40%', width: 5, height: 5, opacity: 0.35}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '78%', right: '12%', width: 8, height: 8, opacity: 0.45}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '84%', left: '15%', width: 6, height: 6, opacity: 0.3}}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '90%', left: '55%', width: 5, height: 5, opacity: 0.35}}), skyAnimated && SHOOTING_STARS.map((s, i) => /*#__PURE__*/React.createElement("div", {key: `shoot-${i}`, className: "absolute pointer-events-none", style: {top: s.top, left: s.left, right: s.right, transform: `rotate(${s.angle}deg)`}}, /*#__PURE__*/React.createElement("div", {className: "sky-shoot-move", style: {animationDuration: `${s.duration}s`, animationDelay: `${s.delay}s`}}, /*#__PURE__*/React.createElement(PixelShootingStar, {style: {width: s.size, height: s.size * 10 / 36, opacity: s.opacity}}))))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {onClick: () => setReadingThemeId('night'), className: "absolute z-20 active:scale-90 transition-transform", style: {top: '6%', right: '6%'}, "aria-label": "Switch to night"}, /*#__PURE__*/React.createElement(PixelCloud, {style: {width: 64, height: 40, opacity: 0.9}}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute `, style: {top: '58%', right: '65%', width: 40, height: 26, opacity: 0.7}})), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '4%', left: '4%', width: 120, height: 75, opacity: 0.5, '--cloud-op': 0.5, animationDuration: '144.8s', animationDelay: '-12s'}}), /*#__PURE__*/React.createElement(PixelCloudB, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '16%', left: '32%', width: 80, height: 50, opacity: 0.35, '--cloud-op': 0.35, animationDuration: '246.8s', animationDelay: '-55s'}}), /*#__PURE__*/React.createElement(PixelCloudC, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '2%', left: '54%', width: 64, height: 43, opacity: 0.4, '--cloud-op': 0.4, animationDuration: '190.8s', animationDelay: '-20s'}}), /*#__PURE__*/React.createElement(PixelCloudB, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '30%', left: '6%', width: 100, height: 62, opacity: 0.3, '--cloud-op': 0.3, animationDuration: '207.2s', animationDelay: '-40s'}}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '38%', right: '6%', width: 140, height: 88, opacity: 0.28, '--cloud-op': 0.28, animationDuration: '158.0s', animationDelay: '-8s'}}), /*#__PURE__*/React.createElement(PixelCloudC, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '48%', left: '44%', width: 70, height: 47, opacity: 0.25, '--cloud-op': 0.25, animationDuration: '230.2s', animationDelay: '-60s'}}), /*#__PURE__*/React.createElement(PixelCloudB, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '56%', right: '28%', width: 66, height: 41, opacity: 0.3, '--cloud-op': 0.3, animationDuration: '181.0s', animationDelay: '-25s'}}), /*#__PURE__*/React.createElement(PixelCloudC, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '64%', left: '18%', width: 58, height: 38, opacity: 0.22, '--cloud-op': 0.22, animationDuration: '196.4s', animationDelay: '-45s'}}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '72%', right: '10%', width: 90, height: 56, opacity: 0.24, '--cloud-op': 0.24, animationDuration: '168.5s', animationDelay: '-18s'}}), /*#__PURE__*/React.createElement(PixelCloudB, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '80%', left: '40%', width: 50, height: 31, opacity: 0.2, '--cloud-op': 0.2, animationDuration: '214.6s', animationDelay: '-35s'}}), /*#__PURE__*/React.createElement(PixelCloudC, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '88%', right: '30%', width: 46, height: 30, opacity: 0.18, '--cloud-op': 0.18, animationDuration: '178.2s', animationDelay: '-50s'}})), /*#__PURE__*/React.createElement("nav", {className: "flex justify-between items-center px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-1 shrink-0"}, /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-0.5"}, /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-2"}, /*#__PURE__*/React.createElement("div", {className: "w-7 h-7 rounded-full glow flex items-center justify-center"}, /*#__PURE__*/React.createElement("div", {className: "w-2 h-2 rounded-full bg-[#f0ab3c]"})), /*#__PURE__*/React.createElement("span", {className: "font-display italic tracking-tight", style: {fontSize: '1.35rem', color: readerTheme.ink}}, "Lamplight")), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] pl-9", style: {color: readerTheme.muted}}, books.length, " book", books.length !== 1 ? 's' : '')), /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-4"}, /*#__PURE__*/React.createElement("input", {type: "file", accept: ".epub", ref: fileInputRef, onChange: handleFileUpload, className: "hidden"}), /*#__PURE__*/React.createElement("button", {onClick: () => fileInputRef.current?.click(), disabled: isParsing || !window.ePub, "aria-label": "Add book", className: "flex items-center justify-center w-9 h-9 rounded-full shrink-0 transition-colors disabled:opacity-40", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.muted}}, isParsing ? /*#__PURE__*/React.createElement("div", {className: "w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"}) : /*#__PURE__*/React.createElement(Plus, {size: 16})), /*#__PURE__*/React.createElement("button", {onClick: () => setShowShelfControls(true), "aria-label": "Adjust shelf size", className: "flex items-center justify-center w-9 h-9 rounded-full shrink-0 transition-colors", style: {border: `1px solid ${readerTheme.line}`, color: readerTheme.muted}}, /*#__PURE__*/React.createElement(Sliders, {size: 15})), /*#__PURE__*/React.createElement("button", {onClick: handleSignOut, className: "font-mono text-[9px] uppercase tracking-wide transition-colors", style: {color: readerTheme.muted}}, devMode ? 'Exit local mode' : 'Sign out'))), /*#__PURE__*/React.createElement("div", {className: "h-8 shrink-0"}), /*#__PURE__*/React.createElement("div", {className: "flex-1 min-h-0 flex flex-col pb-[max(4rem,env(safe-area-inset-bottom))]"}, books.length > 0 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "flex-1 min-h-0 flex flex-col", style: {transform: `scale(${shelfScale})`, transformOrigin: 'center center'}}, /*#__PURE__*/React.createElement("div", {className: mobileStackView ? "flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar flex flex-col justify-end items-center gap-0.5 px-4 md:px-10" : "flex-1 min-h-0 overflow-x-auto no-scrollbar flex flex-row items-end gap-0.5 px-4 md:px-10", style: {WebkitOverflowScrolling: 'touch'}, onScroll: () => setActiveSpineId(null)}, sortedBooks.map((book, idx) => {
     const tpl = pickTemplate(book.title, book.id);
