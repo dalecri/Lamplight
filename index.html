@@ -337,7 +337,6 @@ const BOOK_TEMPLATES = [
   {id: 'lardent', width: 40, layout: 'title-circles', bg: '#f472b6', ink: '#ffffff', circleColor: '#9d174d', font: '"Times New Roman", Times, serif'},
   {id: 'robin', width: 34, layout: 'sticker-emojis', bg: '#6b7280', ink: '#111827', stickerBg: '#4ade80', stickerColor: '#111827'},
   {id: 'value-serif', width: 34, layout: 'title-subtitle', bg: '#451a03', ink: '#f8fafc', subtitle: 'Italics', subtitleColor: '#9a3412', font: 'serif', subtitleItalic: true},
-  {id: 'mabry', width: 37, layout: 'sun-title', bg: '#ca8a04', ink: '#ffffff', sunColor: '#fef08a'},
   {id: 'dopple', width: 32, layout: 'title-stripes', bg: '#18181b', ink: '#ffffff', stripes: ['#f43f5e', '#ec4899', '#22c55e', '#3b82f6', '#1d4ed8']}
 ];
 const pickTemplate = (title, id) => BOOK_TEMPLATES[hashString(String(id || title)) % BOOK_TEMPLATES.length];
@@ -389,8 +388,6 @@ const renderTemplateSpine = (tpl, title, flat) => {
       return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-center gap-5"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontWeight: 'bold', fontSize: 16}}, title), /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-1.5 shrink-0"}, [0, 1].map(i => /*#__PURE__*/React.createElement("div", {key: i, className: "rounded-full", style: {width: 11, height: 11, background: tpl.circleColor}}))));
     case 'sticker-emojis':
       return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden", style: {background: tpl.stickerBg}}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.stickerColor, fontWeight: 'bold', fontSize: 12}}, title));
-    case 'sun-title':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-between py-4"}, /*#__PURE__*/React.createElement("span", {style: {color: tpl.sunColor, fontSize: 13}}, "\u2600"), /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 14}}, title));
     case 'title-stripes':
       return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-between py-4"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 13}}, title), /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-1 shrink-0"}, tpl.stripes.map((s, i) => /*#__PURE__*/React.createElement("div", {key: i, style: {width: 18, height: 3, background: s}}))));
     default:
