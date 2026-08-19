@@ -971,7 +971,10 @@ function App() {
           const localBook = {id: `local-${Date.now()}`, progress: 0, cover: coverDataUrl, createdAt: Date.now(), title, author, words: extractedWords, chapters: extractedChapters};
           setBooks(prev => [localBook, ...prev]);
         } else {
-          const coverUrl = coverBlob ? await uploadCoverToStorage(session.user.id, coverBlob) : null;
+          let coverUrl = coverBlob ? await uploadCoverToStorage(session.user.id, coverBlob) : null;
+          if (!coverUrl && coverBlob) {
+            coverUrl = await blobToDataUrl(coverBlob).catch(() => null);
+          }
           const parsedBook = {title, author, words: extractedWords, chapters: extractedChapters, cover: coverUrl};
           const savedBook = await insertBook(session.user.id, parsedBook);
           setBooks(prev => [savedBook, ...prev]);
