@@ -530,6 +530,40 @@ const insertBook = async (userId, bookData) => {
   if (error) throw error;
   return rowToBook(data);
 };
+// Uploads a cover image to Supabase Storage (bucket: "covers") instead of embedding it as
+// base64 in the books table — keeps book rows small and queries fast as the library grows.
+// Requires a public "covers" bucket to exist in the Supabase project (one-time dashboard setup).
+const uploadCoverToStorage = async (userId, blob) => {
+  try {
+    const ext = (blob.type && blob.type.split('/')[1]) || 'jpg';
+    const filename = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const path = `${userId}/${filename}.${ext}`;
+    const {error: uploadError} = await supabaseClient.storage.from('covers').upload(path, blob, {contentType: blob.type || 'image/jpeg', upsert: true});
+    if (uploadError) throw uploadError;
+    const {data} = supabaseClient.storage.from('covers').getPublicUrl(path);
+    return data?.publicUrl || null;
+  } catch (e) {
+    console.warn('Could not upload cover to storage, continuing without cover:', e);
+    return null;
+  }
+};
+// Cleans up a book's cover file in Storage when the book itself is deleted, so orphaned
+// images don't silently pile up in the bucket. Only acts on URLs that actually point into
+// our own "covers" bucket (skips base64 data URIs, external cover-crop URLs, or null).
+const deleteCoverFromStorage = async coverUrl => {
+  try {
+    if (!coverUrl || typeof coverUrl !== 'string') return;
+    const marker = '/storage/v1/object/public/covers/';
+    const idx = coverUrl.indexOf(marker);
+    if (idx === -1) return;
+    const path = decodeURIComponent(coverUrl.slice(idx + marker.length));
+    if (!path) return;
+    const {error} = await supabaseClient.storage.from('covers').remove([path]);
+    if (error) console.warn('Could not remove cover from storage:', error.message);
+  } catch (e) {
+    console.warn('Could not remove cover from storage:', e);
+  }
+};
 // Kept for older rows that were saved before the cover column existed / before a cover
 // finished extracting — lets us backfill a cover onto an existing book without a full re-upload.
 const updateBookCoverRemote = async (id, coverDataUrl) => {
@@ -544,9 +578,10 @@ const updateBookProgress = async (id, progress) => {
   const {error} = await supabaseClient.from('books').update({progress}).eq('id', id);
   if (error) throw error;
 };
-const deleteBookRemote = async id => {
+const deleteBookRemote = async (id, coverUrl) => {
   const {error} = await supabaseClient.from('books').delete().eq('id', id);
   if (error) throw error;
+  deleteCoverFromStorage(coverUrl);
 };
 
 const RSVPWord = ({word, isPlaying, ink, pivotColor, glowColor, sizeScale = 1}) => {
@@ -844,25 +879,25 @@ function App() {
     }
     return () => clearInterval(interval);
   }, [isPlaying, wpm, activeBook, wordIndex, readMode]);
-  const extractCoverDataUrl = async book => {
+  const extractCoverBlob = async book => {
     try {
       const coverPath = await book.loaded.cover;
       if (!coverPath) return null;
       const coverUrl = await book.archive.createUrl(coverPath, {base64: false});
       const resp = await fetch(coverUrl);
       const blob = await resp.blob();
-      const dataUrl = await new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result);
-        r.onerror = reject;
-        r.readAsDataURL(blob);
-      });
-      return dataUrl;
+      return blob;
     } catch (e) {
       console.warn('Could not extract cover image:', e);
       return null;
     }
   };
+  const blobToDataUrl = blob => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
   const handleFileUpload = async e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -876,7 +911,7 @@ function App() {
         const metadata = await book.loaded.metadata;
         const title = metadata.title || file.name.replace('.epub', '');
         const author = metadata.creator || "Unknown author";
-        const coverDataUrl = await extractCoverDataUrl(book);
+        const coverBlob = await extractCoverBlob(book);
         let extractedWords = [];
         let extractedChapters = [];
         let globalWordCount = 0;
@@ -931,11 +966,13 @@ function App() {
             console.warn(`Skipping unreadable spine item ${i}:`, itemErr);
           }
         }
-        const parsedBook = {title, author, words: extractedWords, chapters: extractedChapters, cover: coverDataUrl};
         if (devMode) {
-          const localBook = {id: `local-${Date.now()}`, progress: 0, cover: coverDataUrl, createdAt: Date.now(), ...parsedBook};
+          const coverDataUrl = coverBlob ? await blobToDataUrl(coverBlob).catch(() => null) : null;
+          const localBook = {id: `local-${Date.now()}`, progress: 0, cover: coverDataUrl, createdAt: Date.now(), title, author, words: extractedWords, chapters: extractedChapters};
           setBooks(prev => [localBook, ...prev]);
         } else {
+          const coverUrl = coverBlob ? await uploadCoverToStorage(session.user.id, coverBlob) : null;
+          const parsedBook = {title, author, words: extractedWords, chapters: extractedChapters, cover: coverUrl};
           const savedBook = await insertBook(session.user.id, parsedBook);
           setBooks(prev => [savedBook, ...prev]);
         }
@@ -1084,8 +1121,9 @@ function App() {
   };
   const handleDelete = async (e, id) => {
     e.stopPropagation();
+    const bookToDelete = books.find(b => b.id === id);
     setBooks(prev => prev.filter(b => b.id !== id));
-    if (!devMode) deleteBookRemote(id).catch(console.error);
+    if (!devMode) deleteBookRemote(id, bookToDelete?.cover).catch(console.error);
   };
   const stepWord = direction => {
     setIsPlaying(false);
