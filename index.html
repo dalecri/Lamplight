@@ -485,13 +485,13 @@ const pixelCircleRows = diameter => {
   return rows;
 };
 const PixelMoonFull = ({className, style, moonColor = '#dcd8c9', craterColor, highlightColor, glowColor = '#dcd8c9', animated = true}) => {
-  const SIZE = 42;
+  const SIZE = 50;
   const center = SIZE / 2;
   const bodyDiameter = 26;
   const crater = craterColor || darkenColor(moonColor, 0.32);
   const highlight = highlightColor || lightenColor(moonColor, 0.25);
   const buildRing = diameter => pixelCircleRows(diameter).map(({row, w}) => /*#__PURE__*/React.createElement("rect", {key: `${diameter}-${row}`, x: center - w / 2, y: center - diameter / 2 + row, width: w, height: 1}));
-  return /*#__PURE__*/React.createElement("svg", {viewBox: `0 0 ${SIZE} ${SIZE}`, className: className, style: style},
+  return /*#__PURE__*/React.createElement("svg", {viewBox: `0 0 ${SIZE} ${SIZE}`, className: className, style: {overflow: 'visible', ...style}},
     /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("clipPath", {id: "moon-body-clip"}, buildRing(bodyDiameter))),
     /*#__PURE__*/React.createElement("g", {className: animated ? "moon-glow-only" : "", style: {transformOrigin: 'center'}},
       /*#__PURE__*/React.createElement("g", {fill: glowColor, opacity: 0.05}, buildRing(46)),
@@ -519,7 +519,7 @@ const PixelMoonFull = ({className, style, moonColor = '#dcd8c9', craterColor, hi
       /*#__PURE__*/React.createElement("rect", {x: center + 2, y: center - 11, width: 3, height: 2}),
       /*#__PURE__*/React.createElement("rect", {x: center - 9, y: center - 10, width: 2, height: 2})));
 };
-const MoonWithGlow = ({className, style, size = 140, moonColor = '#dcd8c9', craterColor, highlightColor, glowColor, animated = true}) => /*#__PURE__*/React.createElement(PixelMoonFull, {className: className, style: {...style, width: size, height: size}, moonColor: moonColor, craterColor: craterColor, highlightColor: highlightColor, glowColor: glowColor || moonColor, animated: animated});
+const MoonWithGlow = ({className, style, size = 140, moonColor = '#dcd8c9', craterColor, highlightColor, glowColor, animated = true}) => /*#__PURE__*/React.createElement(PixelMoonFull, {className: className, style: {borderRadius: '50%', ...style, width: size, height: size}, moonColor: moonColor, craterColor: craterColor, highlightColor: highlightColor, glowColor: glowColor || moonColor, animated: animated});
 const LampBackgroundArt = ({className, style, ink = '#3a3128', beam = '#c9793a', cordLength = 60}) => {
   const shift = 60 - cordLength;
   const socketY = 60 - shift, shadeY1 = 76 - shift, shadeY2 = 86 - shift, shadeY3 = 96 - shift, beamY = 108 - shift;
