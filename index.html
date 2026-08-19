@@ -487,7 +487,7 @@ const pixelCircleRows = diameter => {
 const PixelMoonFull = ({className, style, moonColor = '#dcd8c9', craterColor, highlightColor, glowColor = '#dcd8c9', animated = true}) => {
   const SIZE = 40;
   const center = SIZE / 2;
-  const bodyDiameter = 24;
+  const bodyDiameter = 30;
   const crater = craterColor || darkenColor(moonColor, 0.32);
   const highlight = highlightColor || lightenColor(moonColor, 0.25);
   const buildRing = diameter => pixelCircleRows(diameter).map(({row, w}) => /*#__PURE__*/React.createElement("rect", {key: `${diameter}-${row}`, x: center - w / 2, y: center - diameter / 2 + row, width: w, height: 1}));
