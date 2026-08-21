@@ -590,7 +590,7 @@ const InteractiveMoon = ({positionClass, wrapperStyle, size, moonColor, animated
   const translate = pull * 16;
   return /*#__PURE__*/React.createElement(React.Fragment, null,
     /*#__PURE__*/React.createElement(MoonBeamArt, {positionClass: positionClass, top: wrapperStyle.top, size: size, beamColor: beamColor, height: beamHeight, opacity: beamOpacity, transition: beamTransition}),
-    /*#__PURE__*/React.createElement("div", {className: `${positionClass} pointer-events-auto`, style: {...wrapperStyle, width: size, height: size, cursor: 'grab', touchAction: 'none'}, onMouseDown: onPointerDown, onTouchStart: onPointerDown, role: "button", tabIndex: 0, "aria-label": "Press and pull the moon to toggle the animated night sky"},
+    /*#__PURE__*/React.createElement("div", {className: `${positionClass} pointer-events-auto`, style: {...wrapperStyle, width: size, height: size, cursor: 'grab', touchAction: 'none'}, onMouseDown: onPointerDown, onTouchStart: onPointerDown, onClick: e => e.stopPropagation(), role: "button", tabIndex: 0, "aria-label": "Press and pull the moon to toggle the animated night sky"},
       /*#__PURE__*/React.createElement("div", {className: snapping ? 'lamp-snap' : '', style: {transform: `translateY(${translate}px)`}},
         /*#__PURE__*/React.createElement(MoonWithGlow, {size: size, moonColor: moonColor, animated: animated}))));
 };
@@ -917,8 +917,15 @@ function App() {
   const [moonPull, setMoonPull] = useState(0);
   const [moonSnapping, setMoonSnapping] = useState(false);
   const moonDragRef = useRef({dragging: false, startY: 0, pull: 0});
+  const lastMoonTouchRef = useRef(0);
   const MOON_PULL_MAX = 60;
   const moonPointerDown = e => {
+    // Mobile browsers fire a synthetic (ghost) mousedown/mouseup/click sequence shortly after
+    // a real touch interaction. Since this handler is bound to both onMouseDown and
+    // onTouchStart, that ghost mousedown would otherwise start a second drag cycle for the
+    // same physical tap, causing togglePlay() to fire twice (canceling itself out) on mobile.
+    if (e.type === 'mousedown' && Date.now() - lastMoonTouchRef.current < 700) return;
+    if (e.type === 'touchstart') lastMoonTouchRef.current = Date.now();
     e.stopPropagation();
     e.preventDefault();
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
