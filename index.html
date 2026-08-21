@@ -667,7 +667,7 @@ const InteractiveLamp = ({wrapperClassName, wrapperStyle, ink, beam, cordLength,
   return /*#__PURE__*/React.createElement("div", {className: wrapperClassName, style: wrapperStyle},
     /*#__PURE__*/React.createElement("div", {className: `w-full h-full ${snapping ? 'lamp-snap' : ''}`, style: {transform: `scaleY(${stretch})`, transformOrigin: 'top center'}},
       /*#__PURE__*/React.createElement(LampArtComponent, {className: "w-full h-full", ink: ink, beam: beam, cordLength: cordLength})),
-    /*#__PURE__*/React.createElement("div", {className: "lamp-pull-zone absolute", style: {top: 0, left: '50%', transform: 'translateX(-50%)', width: 100, height: '34%'}, onMouseDown: onPointerDown, onTouchStart: onPointerDown, role: "button", tabIndex: 0, "aria-label": "Pull the lamp cord to change reading theme"}));
+    /*#__PURE__*/React.createElement("div", {className: "lamp-pull-zone absolute", style: {top: 0, left: '50%', transform: 'translateX(-50%)', width: 100, height: '34%'}, onMouseDown: onPointerDown, onTouchStart: onPointerDown, onClick: e => e.stopPropagation(), role: "button", tabIndex: 0, "aria-label": "Pull the lamp cord to change reading theme"}));
 };
 
 // Config for the shelf's shooting stars: each travels in a straight line at its own `angle`
@@ -899,6 +899,7 @@ function App() {
   const [lampPull, setLampPull] = useState(0);
   const [lampSnapping, setLampSnapping] = useState(false);
   const lampDragRef = useRef({dragging: false, startY: 0, pull: 0});
+  const lastLampTouchRef = useRef(0);
   const [pixelLamp, setPixelLamp] = useState(initialSettings.pixelLamp ?? true);
   const [hideMoonSun, setHideMoonSun] = useState(initialSettings.hideMoonSun ?? false);
   const LAMP_PULL_MAX = 68;
@@ -917,6 +918,10 @@ function App() {
     pickReadingTheme(lampIds[nextIdx]);
   };
   const lampPointerDown = e => {
+    // Same ghost-touch guard as the moon/sun: mobile fires a synthetic mousedown shortly after
+    // a real touch, which would otherwise start a second drag cycle for one physical tap.
+    if (e.type === 'mousedown' && Date.now() - lastLampTouchRef.current < 700) return;
+    if (e.type === 'touchstart') lastLampTouchRef.current = Date.now();
     e.stopPropagation();
     e.preventDefault();
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -942,6 +947,8 @@ function App() {
       if (pulled > 0.45) {
         cycleReadingTheme();
         if (navigator.vibrate) navigator.vibrate(12);
+      } else if (pulled < 0.1 && readMode === 'rsvp') {
+        togglePlay();
       }
       setTimeout(() => setLampSnapping(false), 560);
     };
@@ -955,7 +962,7 @@ function App() {
       window.removeEventListener('touchmove', move);
       window.removeEventListener('touchend', up);
     };
-  }, [readingThemeId]);
+  }, [readingThemeId, readMode]);
 
   // --- Moon press-and-pull: same spring gesture as the lamp cord. Since Night is the only
   // moonlit theme, its "on/off" equivalent is toggling the animated sky (twinkling stars,
