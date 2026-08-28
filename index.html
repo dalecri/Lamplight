@@ -447,19 +447,35 @@ const getRsvpChunk = (words, startIndex, chunkSize) => {
   return {chunk, nextIndex: i};
 };
 // One-time scan marking which words fall inside dialogue (quotation marks), for the subtle
-// amber tint hint. Heuristic, not a real parser: toggles "inside a quote" each time a quote
-// character is encountered, which is good enough for a gentle visual cue.
+// amber tint hint. Heuristic, not a real parser. Two signals, combined: (1) a running toggle
+// within each paragraph — reset at every paragraph break, which matters because English prose
+// commonly leaves a paragraph's closing quote OFF when the same speaker continues into the
+// next paragraph (a fresh opening quote starts the next one instead); without resetting, that
+// single "unclosed" quote would flip the toggle wrong for the rest of the book. (2) any
+// paragraph that starts with an opening quote is treated as dialogue in full, which correctly
+// catches those continuation paragraphs regardless of whether they're ever "closed".
 const computeDialogueMask = words => {
   if (!words) return [];
   const mask = new Array(words.length).fill(false);
+  const isOpeningQuote = w => /^["“‘]/.test(w);
+  let paraStart = 0;
   let inQuote = false;
-  for (let i = 0; i < words.length; i++) {
+  for (let i = 0; i <= words.length; i++) {
+    const atBreak = i === words.length || words[i] === PARA_BREAK;
+    if (atBreak) {
+      if (paraStart < i && isOpeningQuote(words[paraStart])) {
+        for (let j = paraStart; j < i; j++) mask[j] = true;
+      }
+      inQuote = false;
+      paraStart = i + 1;
+      continue;
+    }
     const quoteChars = (words[i].match(/["“”]/g) || []).length;
     if (quoteChars > 0) {
       for (let q = 0; q < quoteChars; q++) inQuote = !inQuote;
       mask[i] = true;
-    } else {
-      mask[i] = inQuote;
+    } else if (inQuote) {
+      mask[i] = true;
     }
   }
   return mask;
