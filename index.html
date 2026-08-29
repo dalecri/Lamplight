@@ -1545,7 +1545,13 @@ function App() {
           }
         }
         const coverDataUrl = coverBlob ? await blobToDataUrl(coverBlob).catch(() => null) : null;
-        const localBook = {id: `local-${Date.now()}`, progress: 0, cover: coverDataUrl, createdAt: Date.now(), title, author, words: extractedWords, chapters: extractedChapters};
+        // Skip front matter (copyright page, titlepage, publisher info) by default: publishers
+        // almost never list these in the table of contents, so the first TOC-matched chapter's
+        // word-index is a reliable "where the book actually starts" marker. Nothing is deleted —
+        // this only changes where a fresh import's reading position begins; Contents and
+        // scrubbing backward still reach everything before it.
+        const startIndex = extractedChapters.length > 0 ? extractedChapters[0].index : 0;
+        const localBook = {id: `local-${Date.now()}`, progress: startIndex, cover: coverDataUrl, createdAt: Date.now(), title, author, words: extractedWords, chapters: extractedChapters};
         await idbPutBook(localBook).catch(err => console.error('Could not save book to device storage:', err));
         setBooks(prev => [localBook, ...prev]);
       } catch (error) {
