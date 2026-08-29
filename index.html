@@ -1499,6 +1499,12 @@ function App() {
         const normalizeHref = h => (h || '').split('#')[0].split('/').pop();
         for (let i = 0; i < spine.length; i++) {
           const item = spine.get(i);
+          // Cover pages are almost always just a full-page image with no real reading
+          // content, and some readers leave stray <style> text sitting in the body, which
+          // was leaking into the word stream as garbage ("@page {padding:0pt...}"). Skip
+          // them entirely by the standard "cover" naming convention rather than try to
+          // sanitize content nobody wants flashed as words anyway.
+          if (/cover/i.test(item.href || '')) continue;
           try {
             const doc = await item.load(book.load.bind(book));
             if (doc) {
@@ -1510,6 +1516,7 @@ function App() {
               } else {
                 bodyEl = doc.body || doc;
               }
+              if (bodyEl) bodyEl.querySelectorAll('style, script').forEach(el => el.remove());
               const blocks = bodyEl ? Array.from(bodyEl.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote')) : [];
               let cleanWords = [];
               blocks.forEach(block => {
