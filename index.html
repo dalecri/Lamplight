@@ -778,7 +778,7 @@ const FireLightBeam = ({positionClass = 'absolute', bottom, size, height, opacit
   const leftInset = (containerWidth - bottomWidth) / 2;
   const rightInset = leftInset + bottomWidth;
   return /*#__PURE__*/React.createElement("div", {className: `${positionClass} pointer-events-none`, style: {bottom: bottom, left: '50%', transform: 'translateX(-50%)', width: containerWidth, height: height || `calc(100% - ${bottom})`, opacity: opacity, transition: transition, overflow: 'hidden'}},
-    /*#__PURE__*/React.createElement("div", {style: {width: '100%', height: '100%', clipPath: `polygon(${leftInset}px 100%, ${rightInset}px 100%, 100% 0%, 0% 0%)`, background: `linear-gradient(to top, #f79728cc 0%, #f1592280 30%, #e3311e00 90%)`}}));
+    /*#__PURE__*/React.createElement("div", {style: {width: '100%', height: '100%', clipPath: `polygon(${leftInset}px 100%, ${rightInset}px 100%, 100% 0%, 0% 0%)`, background: `linear-gradient(to top, #f7972830 0%, #f1592218 35%, #e3311e00 90%)`}}));
 };
 // Tap the fire to toggle play in RSVP, same as the other interactive elements; a bigger pull
 // toggles the animated flicker on/off.
