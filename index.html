@@ -1277,7 +1277,6 @@ function App() {
   const [onboardSelectedBooks, setOnboardSelectedBooks] = useState(() => {
     try { return new Set((window.CURATED_BOOKS || []).map(b => b.id)); } catch (e) { return new Set(); }
   });
-  const [activeSetupSection, setActiveSetupSection] = useState('font');
   // --- Onboarding reading-speed calibration: a short, real timed test instead of a guessed
   // "slow/average/fast" pick. The user reads a fixed passage at their own pace and taps "Done";
   // words / elapsed-minutes gives an actual wpm, which becomes their starting speed. A minimum
@@ -1308,7 +1307,7 @@ function App() {
     setMeasuredWpm(null);
     speedTestStartRef.current = null;
   };
-  const ONBOARD_SETUP_STEPS = ['reading', 'books'];
+  const ONBOARD_SETUP_STEPS = ['font', 'size', 'theme', 'speed', 'books'];
   const TOTAL_INTRO_STEPS = INTRO_SLIDES.length + ONBOARD_SETUP_STEPS.length;
   // `selectedOverride` lets a "skip" action force an empty selection regardless of what's
   // checked in onboardSelectedBooks (see skipIntro below) — without it, "skip" would silently
@@ -2359,7 +2358,7 @@ function App() {
   }
   if (showIntro && introStep >= INTRO_SLIDES.length) {
     const setupIdx = introStep - INTRO_SLIDES.length;
-    const setupKind = ONBOARD_SETUP_STEPS[setupIdx];
+    const setupKind = ONBOARD_SETUP_STEPS[setupIdx]; // 'font' | 'size' | 'theme' | 'speed' | 'books'
     const isLastOverall = introStep === TOTAL_INTRO_STEPS - 1;
     const curated = window.CURATED_BOOKS || [];
     const toggleBook = id => setOnboardSelectedBooks(prev => {
@@ -2367,55 +2366,65 @@ function App() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-    const sectionStyle = id => ({
-      opacity: activeSetupSection === id ? 1 : 0.42,
-      transform: activeSetupSection === id ? 'scale(1)' : 'scale(0.985)',
-      background: activeSetupSection === id ? `${chromeTheme.ink}0d` : 'transparent',
-      border: `1px solid ${activeSetupSection === id ? chromeTheme.chipText : chromeTheme.line}`
-    });
-    return /*#__PURE__*/React.createElement("div", {className: "relative overflow-hidden flex flex-col", onTouchStart: startIntroSwipe, onTouchEnd: endIntroSwipe, style: {height: '100dvh', background: chromeTheme.bg, '--font-display': theme.display}},
-      /*#__PURE__*/React.createElement("div", {className: "flex-1 overflow-y-auto px-5 pt-[max(2rem,env(safe-area-inset-top))] pb-4"},
-        /*#__PURE__*/React.createElement("div", {className: "w-full max-w-md mx-auto"},
-          /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-1"},
-            /*#__PURE__*/React.createElement("button", {onClick: () => goToIntroStep(-1), className: "font-mono text-xs flex items-center gap-1", style: {color: chromeTheme.muted}, "aria-label": "Previous onboarding page"}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 14}), setupKind === 'reading' ? '1 of 2' : '2 of 2'),
-            /*#__PURE__*/React.createElement("span", {className: "font-display italic text-sm", style: {color: chromeTheme.ink}}, "Lamplight")),
-          /*#__PURE__*/React.createElement("h2", {className: "font-display text-2xl font-medium mb-1", style: {color: chromeTheme.ink}}, setupKind === 'reading' ? 'Make reading feel right' : 'Choose your first books'),
-          /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed mb-5", style: {color: chromeTheme.muted}}, setupKind === 'reading' ? 'Choose your typeface, text size, reading speed, and reading light. Scroll if you need a little more room.' : 'Free public-domain classics, stored on this device. Uncheck anything you don\u2019t want.'),
-          setupKind === 'reading' && /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-3"},
-            /*#__PURE__*/React.createElement("section", {className: "onboard-section rounded-2xl p-3", onClick: () => setActiveSetupSection('font'), style: sectionStyle('font')},
-              /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-2"}, /*#__PURE__*/React.createElement("h3", {className: "text-sm font-semibold", style: {color: chromeTheme.ink}}, "Typeface"), activeSetupSection === 'font' && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] uppercase tracking-wide", style: {color: chromeTheme.chipText}}, "Choose one")),
-              /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-3 gap-1.5"}, THEMES.map((t, i) => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => { setThemeIdx(i); setActiveSetupSection('size'); }, className: "flex flex-col items-center gap-1 py-2 rounded-xl transition-colors", style: {background: i === themeIdx ? `${chromeTheme.ink}14` : 'transparent', border: `1px solid ${i === themeIdx ? chromeTheme.chipText : chromeTheme.line}`, color: chromeTheme.ink}}, /*#__PURE__*/React.createElement("span", {style: {fontFamily: t.display}, className: "text-lg leading-none"}, t.glyph), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] uppercase tracking-wide", style: {color: chromeTheme.muted}}, t.label))))),
-            /*#__PURE__*/React.createElement("section", {className: "onboard-section rounded-2xl p-3", onClick: () => setActiveSetupSection('size'), style: sectionStyle('size')},
-              /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-2"}, /*#__PURE__*/React.createElement("h3", {className: "text-sm font-semibold", style: {color: chromeTheme.ink}}, "Text size"), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px]", style: {color: chromeTheme.muted}}, `${Math.round(FONT_SIZES[fontSizeIdx] * 16)} px`)),
-              /*#__PURE__*/React.createElement("div", {className: "rounded-xl px-4 py-3 mb-2 overflow-hidden", style: {background: chromeTheme.bg, border: `1px solid ${chromeTheme.line}`, minHeight: 78}}, /*#__PURE__*/React.createElement("p", {style: {fontFamily: theme.display, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, lineHeight: 1.65, color: chromeTheme.ink, transition: 'font-size 0.2s ease'}}, "The lamplight fell across the page, and the story began to glow.")),
-              /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-center gap-4"},
-                /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.max(0, i - 1)), disabled: fontSizeIdx === 0, className: "w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30", style: {border: `1px solid ${chromeTheme.line}`, color: chromeTheme.ink}, "aria-label": "Decrease text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-sm"}, "A")),
-                /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-2"}, FONT_SIZES.map((_, i) => /*#__PURE__*/React.createElement("button", {key: i, onClick: () => setFontSizeIdx(i), "aria-label": `Text size ${i + 1}`, className: "rounded-full", style: {width: 9, height: 9, background: i === fontSizeIdx ? chromeTheme.chipText : chromeTheme.line}}))),
-                /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.min(FONT_SIZES.length - 1, i + 1)), disabled: fontSizeIdx === FONT_SIZES.length - 1, className: "w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30", style: {border: `1px solid ${chromeTheme.line}`, color: chromeTheme.ink}, "aria-label": "Increase text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-xl"}, "A")))),
-            /*#__PURE__*/React.createElement("section", {className: "onboard-section rounded-2xl p-3", onClick: () => setActiveSetupSection('speed'), style: sectionStyle('speed')},
-              /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-2"}, /*#__PURE__*/React.createElement("h3", {className: "text-sm font-semibold", style: {color: chromeTheme.ink}}, "Reading speed"), measuredWpm && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px]", style: {color: chromeTheme.chipText}}, `${measuredWpm} wpm`)),
-              speedTestState === 'idle' && /*#__PURE__*/React.createElement(React.Fragment, null,
-                /*#__PURE__*/React.createElement("div", {className: "rounded-xl px-4 py-3 mb-2", style: {background: chromeTheme.bg, border: `1px solid ${chromeTheme.line}`}}, /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed", style: {fontFamily: theme.display, color: chromeTheme.ink}}, SPEED_TEST_PASSAGE)),
-                /*#__PURE__*/React.createElement("p", {className: "text-xs leading-relaxed mb-2", style: {color: chromeTheme.muted}}, "Read it at your normal pace, then tap Done. We\u2019ll use that to set your starting speed \u2014 you can always change it later."),
-                /*#__PURE__*/React.createElement("button", {onClick: startSpeedTest, className: "w-full py-2.5 rounded-xl text-sm font-semibold", style: {background: chromeTheme.chipText, color: chromeTheme.bg}}, "I'm ready \u2014 start")),
-              speedTestState === 'reading' && /*#__PURE__*/React.createElement(React.Fragment, null,
-                /*#__PURE__*/React.createElement("div", {className: "rounded-xl px-4 py-3 mb-2", style: {background: chromeTheme.bg, border: `1px solid ${chromeTheme.chipText}`}}, /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed", style: {fontFamily: theme.display, color: chromeTheme.ink}}, SPEED_TEST_PASSAGE)),
-                /*#__PURE__*/React.createElement("button", {onClick: finishSpeedTest, className: "w-full py-2.5 rounded-xl text-sm font-semibold", style: {background: chromeTheme.chipText, color: chromeTheme.bg}}, "I'm done reading")),
-              speedTestState === 'done' && /*#__PURE__*/React.createElement(React.Fragment, null,
-                /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed mb-2", style: {color: chromeTheme.ink}}, `You read at about ${measuredWpm} wpm. That's your starting speed \u2014 you can adjust it anytime with the speed slider.`),
-                /*#__PURE__*/React.createElement("button", {onClick: retrySpeedTest, className: "text-xs font-mono underline underline-offset-2", style: {color: chromeTheme.muted}}, "Try again"))),
-            /*#__PURE__*/React.createElement("section", {className: "onboard-section rounded-2xl p-3", onClick: () => setActiveSetupSection('theme'), style: sectionStyle('theme')},
-              /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-2"}, /*#__PURE__*/React.createElement("h3", {className: "text-sm font-semibold", style: {color: chromeTheme.ink}}, "Reading light"), activeSetupSection === 'theme' && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] uppercase tracking-wide", style: {color: chromeTheme.chipText}}, "Choose one")),
-              /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-2 gap-2"}, READING_PRESETS.map(t => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => pickReadingTheme(t.id, t.sky), "aria-label": t.label, className: "flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-transform active:scale-[0.98]", style: {background: t.id === readingThemeId ? `${chromeTheme.ink}14` : 'transparent', border: `1px solid ${t.id === readingThemeId ? chromeTheme.chipText : chromeTheme.line}`, color: chromeTheme.ink}},
-                /*#__PURE__*/React.createElement(THEME_ICON[t.id], {size: 20, style: {color: chromeTheme.chipText}}),
-                /*#__PURE__*/React.createElement("span", {className: "text-sm font-semibold"}, t.label)))))),
-          setupKind === 'books' && (curated.length > 0 ? /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-2"}, curated.map(b => /*#__PURE__*/React.createElement("button", {key: b.id, onClick: () => toggleBook(b.id), className: "flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors", style: {background: onboardSelectedBooks.has(b.id) ? `${chromeTheme.ink}14` : 'transparent', border: `1px solid ${onboardSelectedBooks.has(b.id) ? chromeTheme.chipText : chromeTheme.line}`}},
-            /*#__PURE__*/React.createElement("div", {className: "w-5 h-5 rounded-md flex items-center justify-center shrink-0", style: {background: onboardSelectedBooks.has(b.id) ? chromeTheme.chipText : 'transparent', border: `1.5px solid ${onboardSelectedBooks.has(b.id) ? chromeTheme.chipText : chromeTheme.line}`}}, onboardSelectedBooks.has(b.id) && /*#__PURE__*/React.createElement(Check, {size: 13, style: {color: chromeTheme.bg}})),
-            /*#__PURE__*/React.createElement("div", {className: "flex flex-col min-w-0"}, /*#__PURE__*/React.createElement("span", {className: "text-sm font-semibold truncate", style: {color: chromeTheme.ink}}, b.title), /*#__PURE__*/React.createElement("span", {className: "text-xs truncate", style: {color: chromeTheme.muted}}, b.author))))) : /*#__PURE__*/React.createElement("p", {className: "text-sm text-center", style: {color: chromeTheme.muted}}, "No starter books available yet.")))),
-      /*#__PURE__*/React.createElement("div", {className: "w-full max-w-sm mx-auto px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shrink-0"},
-        /*#__PURE__*/React.createElement("div", {className: "flex justify-center gap-2 mb-4"}, Array.from({length: TOTAL_INTRO_STEPS}, (_, i) => /*#__PURE__*/React.createElement("button", {key: i, onClick: () => setIntroStep(i), "aria-label": `Go to onboarding page ${i + 1}`, className: "rounded-full transition-all", style: {width: i === introStep ? 22 : 8, height: 8, background: chromeTheme.ink, opacity: i === introStep ? 0.9 : 0.35}}))),
-        /*#__PURE__*/React.createElement("button", {onClick: () => goToIntroStep(1), className: "w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-transform", style: {background: chromeTheme.playBg, color: chromeTheme.playIcon}}, isLastOverall ? 'See my shelf' : 'Next'),
-        /*#__PURE__*/React.createElement("button", {onClick: skipIntro, className: "w-full text-center text-xs font-mono mt-3", style: {color: chromeTheme.ink, opacity: 0.7}}, isLastOverall ? 'Skip adding books' : 'Use the defaults')));
+    const STEP_COPY = {
+      font: {title: 'Pick your typeface', desc: 'Whatever\u2019s easiest on your eyes \u2014 you can always change this later in Customize.'},
+      size: {title: 'Set your text size', desc: 'Bigger or smaller, however\u2019s comfortable to read.'},
+      theme: {title: 'Choose your reading light', desc: 'Night, Lamplight, Day, or Campfire \u2014 each with its own glow.'},
+      speed: {title: 'Find your reading pace', desc: 'Read the passage above at your normal speed, then tap Done.'},
+      books: {title: 'Choose your first books', desc: 'Free public-domain classics, stored on this device.'}
+    };
+    const copy = STEP_COPY[setupKind] || {title: '', desc: ''};
+    // The theme step's hero zone shows a live preview of whichever preset is currently
+    // selected, so the whole page (nav, hero, card) recolors as you tap between them — the
+    // same "picture that changes with your choice" idea as the reference mockups, just driven
+    // by the actual reading themes instead of static art. Every other step sits on the app's
+    // normal onboarding chrome so the nav/copy stay legible against any selected font/size.
+    const heroTheme = setupKind === 'theme' ? readingThemeTokens(READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0]) : chromeTheme;
+    let heroContent = null;
+    if (setupKind === 'font') {
+      heroContent = /*#__PURE__*/React.createElement("div", {className: "w-full max-w-xs flex flex-col items-center gap-8"},
+        /*#__PURE__*/React.createElement("span", {style: {fontFamily: theme.display, color: heroTheme.ink}, className: "text-6xl leading-none"}, "Aa"),
+        /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-3 gap-2 w-full"}, THEMES.map((t, i) => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => setThemeIdx(i), className: "flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-colors", style: {background: i === themeIdx ? `${heroTheme.ink}14` : 'transparent', border: `1px solid ${i === themeIdx ? heroTheme.chipText : heroTheme.line}`, color: heroTheme.ink}}, /*#__PURE__*/React.createElement("span", {style: {fontFamily: t.display}, className: "text-xl leading-none"}, t.glyph), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] uppercase tracking-wide", style: {color: heroTheme.muted}}, t.label)))));
+    } else if (setupKind === 'size') {
+      heroContent = /*#__PURE__*/React.createElement("div", {className: "w-full max-w-xs flex flex-col items-center gap-6"},
+        /*#__PURE__*/React.createElement("p", {className: "text-center", style: {fontFamily: theme.display, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, lineHeight: 1.6, color: heroTheme.ink, transition: 'font-size 0.2s ease'}}, "The lamplight fell across the page, and the story began to glow."),
+        /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-center gap-5"},
+          /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.max(0, i - 1)), disabled: fontSizeIdx === 0, className: "w-11 h-11 flex items-center justify-center rounded-full disabled:opacity-30", style: {border: `1px solid ${heroTheme.line}`, color: heroTheme.ink}, "aria-label": "Decrease text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-sm"}, "A")),
+          /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-2"}, FONT_SIZES.map((_, i) => /*#__PURE__*/React.createElement("button", {key: i, onClick: () => setFontSizeIdx(i), "aria-label": `Text size ${i + 1}`, className: "rounded-full", style: {width: 9, height: 9, background: i === fontSizeIdx ? heroTheme.chipText : heroTheme.line}}))),
+          /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.min(FONT_SIZES.length - 1, i + 1)), disabled: fontSizeIdx === FONT_SIZES.length - 1, className: "w-11 h-11 flex items-center justify-center rounded-full disabled:opacity-30", style: {border: `1px solid ${heroTheme.line}`, color: heroTheme.ink}, "aria-label": "Increase text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-xl"}, "A"))));
+    } else if (setupKind === 'theme') {
+      const ActiveThemeIcon = THEME_ICON[readingThemeId] || ThemeLampIcon;
+      heroContent = /*#__PURE__*/React.createElement("div", {className: "w-full max-w-xs flex flex-col items-center gap-8"},
+        /*#__PURE__*/React.createElement(ActiveThemeIcon, {size: 64, style: {color: heroTheme.pivot}}),
+        /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-2 gap-2.5 w-full"}, READING_PRESETS.map(t => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => pickReadingTheme(t.id, t.sky), "aria-label": t.label, className: "flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-transform active:scale-[0.98]", style: {background: t.id === readingThemeId ? `${heroTheme.ink}14` : 'transparent', border: `1px solid ${t.id === readingThemeId ? heroTheme.chipText : heroTheme.line}`, color: heroTheme.ink}},
+          /*#__PURE__*/React.createElement(THEME_ICON[t.id], {size: 18, style: {color: heroTheme.chipText}}),
+          /*#__PURE__*/React.createElement("span", {className: "text-sm font-semibold"}, t.label)))));
+    } else if (setupKind === 'speed') {
+      heroContent = /*#__PURE__*/React.createElement("div", {className: "w-full max-w-xs flex flex-col items-center gap-4"},
+        /*#__PURE__*/React.createElement("div", {className: "rounded-2xl px-4 py-4 w-full", style: {background: `${heroTheme.ink}0a`, border: `1px solid ${speedTestState === 'reading' ? heroTheme.chipText : heroTheme.line}`}},
+          /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed", style: {fontFamily: theme.display, color: heroTheme.ink}}, SPEED_TEST_PASSAGE)),
+        speedTestState === 'idle' && /*#__PURE__*/React.createElement("button", {onClick: startSpeedTest, className: "w-full py-3 rounded-2xl text-sm font-semibold", style: {background: heroTheme.chipText, color: heroTheme.bg}}, "I'm ready \u2014 start"),
+        speedTestState === 'reading' && /*#__PURE__*/React.createElement("button", {onClick: finishSpeedTest, className: "w-full py-3 rounded-2xl text-sm font-semibold", style: {background: heroTheme.chipText, color: heroTheme.bg}}, "I'm done reading"),
+        speedTestState === 'done' && /*#__PURE__*/React.createElement(React.Fragment, null,
+          /*#__PURE__*/React.createElement("p", {className: "text-base font-semibold", style: {color: heroTheme.chipText}}, `${measuredWpm} wpm`),
+          /*#__PURE__*/React.createElement("button", {onClick: retrySpeedTest, className: "text-xs font-mono underline underline-offset-2", style: {color: heroTheme.muted}}, "Try again")));
+    } else if (setupKind === 'books') {
+      heroContent = curated.length > 0 ? /*#__PURE__*/React.createElement("div", {className: "w-full max-w-xs flex flex-col gap-2"}, curated.map(b => /*#__PURE__*/React.createElement("button", {key: b.id, onClick: () => toggleBook(b.id), className: "flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-colors", style: {background: onboardSelectedBooks.has(b.id) ? `${heroTheme.ink}14` : 'transparent', border: `1px solid ${onboardSelectedBooks.has(b.id) ? heroTheme.chipText : heroTheme.line}`}},
+        /*#__PURE__*/React.createElement("div", {className: "w-5 h-5 rounded-md flex items-center justify-center shrink-0", style: {background: onboardSelectedBooks.has(b.id) ? heroTheme.chipText : 'transparent', border: `1.5px solid ${onboardSelectedBooks.has(b.id) ? heroTheme.chipText : heroTheme.line}`}}, onboardSelectedBooks.has(b.id) && /*#__PURE__*/React.createElement(Check, {size: 13, style: {color: heroTheme.bg}})),
+        /*#__PURE__*/React.createElement("div", {className: "flex flex-col min-w-0"}, /*#__PURE__*/React.createElement("span", {className: "text-sm font-semibold truncate", style: {color: heroTheme.ink}}, b.title), /*#__PURE__*/React.createElement("span", {className: "text-xs truncate", style: {color: heroTheme.muted}}, b.author)))))
+        : /*#__PURE__*/React.createElement("p", {className: "text-sm text-center", style: {color: heroTheme.muted}}, "No starter books available yet.");
+    }
+    return /*#__PURE__*/React.createElement("div", {className: "relative overflow-hidden flex flex-col", onTouchStart: startIntroSwipe, onTouchEnd: endIntroSwipe, style: {height: '100dvh', background: heroTheme.bg, '--font-display': theme.display, transition: 'background 0.3s ease'}},
+      /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2 shrink-0"},
+        /*#__PURE__*/React.createElement("button", {onClick: () => goToIntroStep(-1), className: "font-mono text-xs flex items-center gap-1", style: {color: heroTheme.muted}, "aria-label": "Previous onboarding page"}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 14}), `${setupIdx + 1} of ${ONBOARD_SETUP_STEPS.length}`),
+        /*#__PURE__*/React.createElement("span", {className: "font-display italic text-sm", style: {color: heroTheme.ink}}, "Lamplight"),
+        /*#__PURE__*/React.createElement("button", {onClick: skipIntro, className: "font-mono text-xs", style: {color: heroTheme.muted}}, "Skip")),
+      /*#__PURE__*/React.createElement("div", {className: "flex-1 min-h-0 overflow-y-auto flex items-center justify-center px-6 py-4"}, heroContent),
+      /*#__PURE__*/React.createElement("div", {className: "shrink-0 rounded-t-3xl px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]", style: {background: `${heroTheme.ink}0d`}},
+        /*#__PURE__*/React.createElement("h2", {className: "font-display text-xl font-medium mb-1", style: {color: heroTheme.ink}}, copy.title),
+        /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed mb-4", style: {color: heroTheme.muted}}, copy.desc),
+        /*#__PURE__*/React.createElement("div", {className: "flex justify-center gap-2 mb-4"}, Array.from({length: TOTAL_INTRO_STEPS}, (_, i) => /*#__PURE__*/React.createElement("button", {key: i, onClick: () => setIntroStep(i), "aria-label": `Go to onboarding page ${i + 1}`, className: "rounded-full transition-all", style: {width: i === introStep ? 22 : 8, height: 8, background: heroTheme.ink, opacity: i === introStep ? 0.9 : 0.35}}))),
+        /*#__PURE__*/React.createElement("button", {onClick: () => goToIntroStep(1), className: "w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-transform", style: {background: heroTheme.playBg, color: heroTheme.playIcon}}, isLastOverall ? 'See my shelf' : 'Next')));
   }
   if (false && showIntro && introStep >= INTRO_SLIDES.length) {
     const setupIdx = introStep - INTRO_SLIDES.length;
