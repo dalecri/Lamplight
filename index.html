@@ -1278,27 +1278,72 @@ function App() {
     try { return new Set((window.CURATED_BOOKS || []).map(b => b.id)); } catch (e) { return new Set(); }
   });
   const [activeSetupSection, setActiveSetupSection] = useState('font');
+  // --- Onboarding reading-speed calibration: a short, real timed test instead of a guessed
+  // "slow/average/fast" pick. The user reads a fixed passage at their own pace and taps "Done";
+  // words / elapsed-minutes gives an actual wpm, which becomes their starting speed. A minimum
+  // elapsed time guards against an accidental instant tap producing an absurd number, and the
+  // result is clamped + rounded to the nearest 25 to match the rest of the speed UI.
+  const SPEED_TEST_PASSAGE = "The old lighthouse keeper climbed the spiral stairs slowly, counting each worn step out of habit rather than need. Outside, the fog had rolled in thick over the harbor, swallowing the fishing boats whole. He lit the lamp anyway, the way he had every evening for thirty years, trusting that somewhere past the gray, someone was watching for it.";
+  const SPEED_TEST_WORDS = SPEED_TEST_PASSAGE.trim().split(/\s+/).length;
+  const [speedTestState, setSpeedTestState] = useState('idle'); // idle | reading | done
+  const [measuredWpm, setMeasuredWpm] = useState(null);
+  const speedTestStartRef = useRef(null);
+  const startSpeedTest = () => {
+    speedTestStartRef.current = Date.now();
+    setSpeedTestState('reading');
+  };
+  const finishSpeedTest = () => {
+    const elapsedMs = Date.now() - (speedTestStartRef.current || Date.now());
+    // Guard against a reflexive/instant tap: treat anything under 3s as noise and fall back
+    // to a sensible default rather than reporting a meaningless four-digit wpm.
+    const elapsedMin = Math.max(elapsedMs, 3000) / 60000;
+    const raw = SPEED_TEST_WORDS / elapsedMin;
+    const clamped = Math.max(100, Math.min(700, Math.round(raw / 25) * 25));
+    setMeasuredWpm(clamped);
+    setWpm(clamped);
+    setSpeedTestState('done');
+  };
+  const retrySpeedTest = () => {
+    setSpeedTestState('idle');
+    setMeasuredWpm(null);
+    speedTestStartRef.current = null;
+  };
   const ONBOARD_SETUP_STEPS = ['reading', 'books'];
   const TOTAL_INTRO_STEPS = INTRO_SLIDES.length + ONBOARD_SETUP_STEPS.length;
-  const finishIntro = () => {
+  // `selectedOverride` lets a "skip" action force an empty selection regardless of what's
+  // checked in onboardSelectedBooks (see skipIntro below) — without it, "skip" would silently
+  // fall back to whatever was left checked (all curated books, by default) and add them anyway.
+  // Also dedupes against books already on the shelf (by title+author, same rule the epub
+  // importer uses) so replaying the intro, or this firing more than once, can't create
+  // duplicate spines.
+  const finishIntro = selectedOverride => {
     try { localStorage.setItem(INTRO_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
-    const toAdd = (window.CURATED_BOOKS || []).filter(b => onboardSelectedBooks.has(b.id));
+    const selected = selectedOverride || onboardSelectedBooks;
+    const toAdd = (window.CURATED_BOOKS || []).filter(b => selected.has(b.id));
     if (toAdd.length > 0) {
-      const newBooks = toAdd.map(b => ({
-        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        progress: b.progress || 0,
-        cover: b.cover || null,
-        createdAt: Date.now(),
-        title: b.title,
-        author: b.author,
-        words: b.words.split(' '),
-        chapters: b.chapters
-      }));
-      newBooks.forEach(nb => idbPutBook(nb).catch(err => console.error('Could not save curated book:', err)));
-      setBooks(prev => [...newBooks, ...prev]);
+      setBooks(prev => {
+        const dupKey = b => `${(b.title || '').trim().toLowerCase()}|${(b.author || '').trim().toLowerCase()}`;
+        const existingKeys = new Set(prev.map(dupKey));
+        const fresh = toAdd.filter(b => !existingKeys.has(dupKey(b)));
+        if (fresh.length === 0) return prev;
+        const newBooks = fresh.map(b => ({
+          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          progress: b.progress || 0,
+          cover: b.cover || null,
+          createdAt: Date.now(),
+          title: b.title,
+          author: b.author,
+          words: b.words.split(' '),
+          chapters: b.chapters
+        }));
+        newBooks.forEach(nb => idbPutBook(nb).catch(err => console.error('Could not save curated book:', err)));
+        return [...newBooks, ...prev];
+      });
     }
     setShowIntro(false);
   };
+  // A real "skip" — always adds nothing, no matter what's checked on the books screen.
+  const skipIntro = () => finishIntro(new Set());
   const introSwipeRef = useRef(null);
   const goToIntroStep = direction => {
     const next = introStep + direction;
@@ -2310,7 +2355,7 @@ function App() {
             /*#__PURE__*/React.createElement("p", {className: "text-[13px] leading-relaxed", style: {color: chromeTheme.ink, opacity: 0.78}}, item.body)))),
           /*#__PURE__*/React.createElement("div", {className: "intro-stagger flex justify-center gap-2 mb-4", style: {'--intro-delay': '700ms'}}, Array.from({length: TOTAL_INTRO_STEPS}, (_, i) => /*#__PURE__*/React.createElement("button", {key: i, onClick: () => setIntroStep(i), "aria-label": `Go to onboarding page ${i + 1}`, className: "rounded-full transition-all", style: {width: i === 0 ? 22 : 8, height: 8, background: chromeTheme.ink, opacity: i === 0 ? 0.9 : 0.35}}))),
           /*#__PURE__*/React.createElement("button", {onClick: () => goToIntroStep(1), className: "intro-stagger w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-transform", style: {'--intro-delay': '760ms', background: chromeTheme.playBg, color: chromeTheme.playIcon}}, "Set up my reading"),
-          /*#__PURE__*/React.createElement("button", {onClick: finishIntro, className: "intro-stagger w-full text-center text-xs font-mono mt-3", style: {'--intro-delay': '860ms', color: chromeTheme.ink, opacity: 0.7}}, "Use the defaults"))));
+          /*#__PURE__*/React.createElement("button", {onClick: skipIntro, className: "intro-stagger w-full text-center text-xs font-mono mt-3", style: {'--intro-delay': '860ms', color: chromeTheme.ink, opacity: 0.7}}, "Use the defaults"))));
   }
   if (showIntro && introStep >= INTRO_SLIDES.length) {
     const setupIdx = introStep - INTRO_SLIDES.length;
@@ -2335,7 +2380,7 @@ function App() {
             /*#__PURE__*/React.createElement("button", {onClick: () => goToIntroStep(-1), className: "font-mono text-xs flex items-center gap-1", style: {color: chromeTheme.muted}, "aria-label": "Previous onboarding page"}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 14}), setupKind === 'reading' ? '1 of 2' : '2 of 2'),
             /*#__PURE__*/React.createElement("span", {className: "font-display italic text-sm", style: {color: chromeTheme.ink}}, "Lamplight")),
           /*#__PURE__*/React.createElement("h2", {className: "font-display text-2xl font-medium mb-1", style: {color: chromeTheme.ink}}, setupKind === 'reading' ? 'Make reading feel right' : 'Choose your first books'),
-          /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed mb-5", style: {color: chromeTheme.muted}}, setupKind === 'reading' ? 'Choose your typeface, text size, and reading light. Scroll if you need a little more room.' : 'Free public-domain classics, stored on this device. Uncheck anything you don\u2019t want.'),
+          /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed mb-5", style: {color: chromeTheme.muted}}, setupKind === 'reading' ? 'Choose your typeface, text size, reading speed, and reading light. Scroll if you need a little more room.' : 'Free public-domain classics, stored on this device. Uncheck anything you don\u2019t want.'),
           setupKind === 'reading' && /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-3"},
             /*#__PURE__*/React.createElement("section", {className: "onboard-section rounded-2xl p-3", onClick: () => setActiveSetupSection('font'), style: sectionStyle('font')},
               /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-2"}, /*#__PURE__*/React.createElement("h3", {className: "text-sm font-semibold", style: {color: chromeTheme.ink}}, "Typeface"), activeSetupSection === 'font' && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] uppercase tracking-wide", style: {color: chromeTheme.chipText}}, "Choose one")),
@@ -2347,6 +2392,18 @@ function App() {
                 /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.max(0, i - 1)), disabled: fontSizeIdx === 0, className: "w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30", style: {border: `1px solid ${chromeTheme.line}`, color: chromeTheme.ink}, "aria-label": "Decrease text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-sm"}, "A")),
                 /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-2"}, FONT_SIZES.map((_, i) => /*#__PURE__*/React.createElement("button", {key: i, onClick: () => setFontSizeIdx(i), "aria-label": `Text size ${i + 1}`, className: "rounded-full", style: {width: 9, height: 9, background: i === fontSizeIdx ? chromeTheme.chipText : chromeTheme.line}}))),
                 /*#__PURE__*/React.createElement("button", {onClick: () => setFontSizeIdx(i => Math.min(FONT_SIZES.length - 1, i + 1)), disabled: fontSizeIdx === FONT_SIZES.length - 1, className: "w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30", style: {border: `1px solid ${chromeTheme.line}`, color: chromeTheme.ink}, "aria-label": "Increase text size"}, /*#__PURE__*/React.createElement("span", {className: "font-display text-xl"}, "A")))),
+            /*#__PURE__*/React.createElement("section", {className: "onboard-section rounded-2xl p-3", onClick: () => setActiveSetupSection('speed'), style: sectionStyle('speed')},
+              /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-2"}, /*#__PURE__*/React.createElement("h3", {className: "text-sm font-semibold", style: {color: chromeTheme.ink}}, "Reading speed"), measuredWpm && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px]", style: {color: chromeTheme.chipText}}, `${measuredWpm} wpm`)),
+              speedTestState === 'idle' && /*#__PURE__*/React.createElement(React.Fragment, null,
+                /*#__PURE__*/React.createElement("div", {className: "rounded-xl px-4 py-3 mb-2", style: {background: chromeTheme.bg, border: `1px solid ${chromeTheme.line}`}}, /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed", style: {fontFamily: theme.display, color: chromeTheme.ink}}, SPEED_TEST_PASSAGE)),
+                /*#__PURE__*/React.createElement("p", {className: "text-xs leading-relaxed mb-2", style: {color: chromeTheme.muted}}, "Read it at your normal pace, then tap Done. We\u2019ll use that to set your starting speed \u2014 you can always change it later."),
+                /*#__PURE__*/React.createElement("button", {onClick: startSpeedTest, className: "w-full py-2.5 rounded-xl text-sm font-semibold", style: {background: chromeTheme.chipText, color: chromeTheme.bg}}, "I'm ready \u2014 start")),
+              speedTestState === 'reading' && /*#__PURE__*/React.createElement(React.Fragment, null,
+                /*#__PURE__*/React.createElement("div", {className: "rounded-xl px-4 py-3 mb-2", style: {background: chromeTheme.bg, border: `1px solid ${chromeTheme.chipText}`}}, /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed", style: {fontFamily: theme.display, color: chromeTheme.ink}}, SPEED_TEST_PASSAGE)),
+                /*#__PURE__*/React.createElement("button", {onClick: finishSpeedTest, className: "w-full py-2.5 rounded-xl text-sm font-semibold", style: {background: chromeTheme.chipText, color: chromeTheme.bg}}, "I'm done reading")),
+              speedTestState === 'done' && /*#__PURE__*/React.createElement(React.Fragment, null,
+                /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed mb-2", style: {color: chromeTheme.ink}}, `You read at about ${measuredWpm} wpm. That's your starting speed \u2014 you can adjust it anytime with the speed slider.`),
+                /*#__PURE__*/React.createElement("button", {onClick: retrySpeedTest, className: "text-xs font-mono underline underline-offset-2", style: {color: chromeTheme.muted}}, "Try again"))),
             /*#__PURE__*/React.createElement("section", {className: "onboard-section rounded-2xl p-3", onClick: () => setActiveSetupSection('theme'), style: sectionStyle('theme')},
               /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-2"}, /*#__PURE__*/React.createElement("h3", {className: "text-sm font-semibold", style: {color: chromeTheme.ink}}, "Reading light"), activeSetupSection === 'theme' && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[9px] uppercase tracking-wide", style: {color: chromeTheme.chipText}}, "Choose one")),
               /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-2 gap-2"}, READING_PRESETS.map(t => /*#__PURE__*/React.createElement("button", {key: t.id, onClick: () => pickReadingTheme(t.id, t.sky), "aria-label": t.label, className: "flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-transform active:scale-[0.98]", style: {background: t.id === readingThemeId ? `${chromeTheme.ink}14` : 'transparent', border: `1px solid ${t.id === readingThemeId ? chromeTheme.chipText : chromeTheme.line}`, color: chromeTheme.ink}},
@@ -2358,7 +2415,7 @@ function App() {
       /*#__PURE__*/React.createElement("div", {className: "w-full max-w-sm mx-auto px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shrink-0"},
         /*#__PURE__*/React.createElement("div", {className: "flex justify-center gap-2 mb-4"}, Array.from({length: TOTAL_INTRO_STEPS}, (_, i) => /*#__PURE__*/React.createElement("button", {key: i, onClick: () => setIntroStep(i), "aria-label": `Go to onboarding page ${i + 1}`, className: "rounded-full transition-all", style: {width: i === introStep ? 22 : 8, height: 8, background: chromeTheme.ink, opacity: i === introStep ? 0.9 : 0.35}}))),
         /*#__PURE__*/React.createElement("button", {onClick: () => goToIntroStep(1), className: "w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-transform", style: {background: chromeTheme.playBg, color: chromeTheme.playIcon}}, isLastOverall ? 'See my shelf' : 'Next'),
-        /*#__PURE__*/React.createElement("button", {onClick: finishIntro, className: "w-full text-center text-xs font-mono mt-3", style: {color: chromeTheme.ink, opacity: 0.7}}, isLastOverall ? 'Skip adding books' : 'Use the defaults')));
+        /*#__PURE__*/React.createElement("button", {onClick: skipIntro, className: "w-full text-center text-xs font-mono mt-3", style: {color: chromeTheme.ink, opacity: 0.7}}, isLastOverall ? 'Skip adding books' : 'Use the defaults')));
   }
   if (false && showIntro && introStep >= INTRO_SLIDES.length) {
     const setupIdx = introStep - INTRO_SLIDES.length;
