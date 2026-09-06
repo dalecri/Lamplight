@@ -2403,8 +2403,8 @@ function App() {
       heroContent = /*#__PURE__*/React.createElement("div", {className: "w-full max-w-xs flex flex-col items-center gap-4"},
         /*#__PURE__*/React.createElement("div", {className: "rounded-2xl px-4 py-4 w-full", style: {background: `${heroTheme.ink}0a`, border: `1px solid ${speedTestState === 'reading' ? heroTheme.chipText : heroTheme.line}`}},
           /*#__PURE__*/React.createElement("p", {className: "text-sm leading-relaxed", style: {fontFamily: theme.display, color: heroTheme.ink}}, SPEED_TEST_PASSAGE)),
-        speedTestState === 'idle' && /*#__PURE__*/React.createElement("button", {onClick: startSpeedTest, className: "w-full py-3 rounded-2xl text-sm font-semibold", style: {background: heroTheme.chipText, color: heroTheme.bg}}, "I'm ready \u2014 start"),
-        speedTestState === 'reading' && /*#__PURE__*/React.createElement("button", {onClick: finishSpeedTest, className: "w-full py-3 rounded-2xl text-sm font-semibold", style: {background: heroTheme.chipText, color: heroTheme.bg}}, "I'm done reading"),
+        speedTestState === 'idle' && /*#__PURE__*/React.createElement("button", {onClick: startSpeedTest, className: "w-full py-3 rounded-2xl text-sm font-semibold transition-transform active:scale-[0.98]", style: {background: 'transparent', border: `1.5px solid ${heroTheme.chipText}`, color: heroTheme.chipText}}, "I'm ready \u2014 start"),
+        speedTestState === 'reading' && /*#__PURE__*/React.createElement("button", {onClick: finishSpeedTest, className: "w-full py-3 rounded-2xl text-sm font-semibold transition-transform active:scale-[0.98]", style: {background: 'transparent', border: `1.5px solid ${heroTheme.chipText}`, color: heroTheme.chipText}}, "I'm done reading"),
         speedTestState === 'done' && /*#__PURE__*/React.createElement(React.Fragment, null,
           /*#__PURE__*/React.createElement("p", {className: "text-base font-semibold", style: {color: heroTheme.chipText}}, `${measuredWpm} wpm`),
           /*#__PURE__*/React.createElement("button", {onClick: retrySpeedTest, className: "text-xs font-mono underline underline-offset-2", style: {color: heroTheme.muted}}, "Try again")));
