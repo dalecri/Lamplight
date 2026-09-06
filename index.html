@@ -1272,7 +1272,7 @@ function App() {
       const newBooks = toAdd.map(b => ({
         id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         progress: b.progress || 0,
-        cover: null,
+        cover: b.cover || null,
         createdAt: Date.now(),
         title: b.title,
         author: b.author,
