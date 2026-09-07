@@ -701,34 +701,56 @@ const deriveThemedTpl = (base, index, total, theme) => {
   };
 };
 const verticalTextStyle = flat => ({writingMode: 'vertical-rl', textOrientation: 'mixed', transform: flat ? 'rotate(0deg)' : 'rotate(180deg)', whiteSpace: 'nowrap', display: 'block', maxHeight: '100%', overflow: 'hidden'});
+// Keep cover lettering large; pan only the titles that overflow their spine.
+const SpineTitle = ({style, text}) => {
+  const outer = useRef(null), inner = useRef(null);
+  useEffect(() => {
+    let animation, previous = '';
+    const measure = () => {
+      const el = outer.current, t = inner.current;
+      const distance = Math.max(0, t.scrollHeight - el.clientHeight);
+      const key = distance + ':' + el.clientHeight;
+      if(key === previous) return;
+      previous = key; animation?.cancel();
+      if(!distance || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const duration = Math.max(16000, distance / 28 * 1000 + 6000);
+      animation = t.animate([{transform:'translateY(0)',offset:0},{transform:'translateY(0)',offset:0.12},{transform:`translateY(-${distance}px)`,offset:0.8},{transform:`translateY(-${distance}px)`,offset:0.95},{transform:'translateY(0)',offset:1}],{duration,iterations:Infinity});
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(outer.current); observer.observe(inner.current); measure();
+    return () => {observer.disconnect(); animation?.cancel();};
+  }, [text]);
+  return React.createElement('span',{ref:outer, title:text, style:{...style, fontSize:Math.min(30,Math.max(18,(style.fontSize || 14)*1.35)), height:'100%', minHeight:0, flexShrink:1, maxWidth:'100%', writingMode:'horizontal-tb', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center'}},
+    React.createElement('span',{ref:inner,style:{writingMode:'vertical-rl',textOrientation:'mixed',whiteSpace:'nowrap',height:'max-content',maxHeight:'none',flexShrink:0,alignSelf:'flex-start'}},text));
+};
 const renderTemplateSpine = (tpl, title, flat) => {
   switch (tpl.layout) {
     case 'badge-mono':
-      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '5%', bottom: '13%', background: tpl.badgeBg}}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.badgeColor, fontFamily: tpl.badgeFont, fontWeight: 'bold', fontStyle: tpl.badgeItalic ? 'italic' : 'normal', fontSize: 13}}, title)), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-2 inset-x-0 flex items-center justify-center"}, /*#__PURE__*/React.createElement("span", {style: {color: tpl.ink, fontFamily: 'monospace', fontWeight: 'bold', fontSize: 8}}, "MMXXVI")));
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '5%', bottom: '13%', background: tpl.badgeBg}}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.badgeColor, fontFamily: tpl.badgeFont, fontWeight: 'bold', fontStyle: tpl.badgeItalic ? 'italic' : 'normal', fontSize: 13}, text: title})), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-2 inset-x-0 flex items-center justify-center"}, /*#__PURE__*/React.createElement("span", {style: {color: tpl.ink, fontFamily: 'monospace', fontWeight: 'bold', fontSize: 8}}, "MMXXVI")));
     case 'title-subtitle':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-center gap-4"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontWeight: 'bold', fontSize: 13, letterSpacing: tpl.letterSpacing}}, title), tpl.subtitle ? /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.subtitleColor, fontFamily: tpl.subtitleFont || tpl.font, fontSize: 9, fontStyle: tpl.subtitleItalic ? 'italic' : 'normal'}}, tpl.subtitle) : null);
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-center gap-4"}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontWeight: 'bold', fontSize: 13, letterSpacing: tpl.letterSpacing}, text: title}), tpl.subtitle ? /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.subtitleColor, fontFamily: tpl.subtitleFont || tpl.font, fontSize: 9, fontStyle: tpl.subtitleItalic ? 'italic' : 'normal'}}, tpl.subtitle) : null);
     case 'badge-title-icon':
-      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0", style: {height: '18%', background: tpl.badgeBg}}), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '20%', bottom: '14%'}}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontSize: 12}}, title)), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-2 left-1/2 -translate-x-1/2 rounded-sm", style: {width: 8, height: 8, background: tpl.badgeBg}}));
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0", style: {height: '18%', background: tpl.badgeBg}}), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '20%', bottom: '14%'}}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontSize: 12}, text: title})), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-2 left-1/2 -translate-x-1/2 rounded-sm", style: {width: 8, height: 8, background: tpl.badgeBg}}));
     case 'badge-title-diamonds':
-      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0 flex items-center justify-center", style: {height: '18%', background: tpl.badgeBg, color: tpl.badgeColor, fontSize: 15}}, tpl.badgeGlyph), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '20%', bottom: '16%'}}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 900, fontSize: 15, letterSpacing: '0.5px'}}, title)), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-2 inset-x-0 flex items-center justify-center", style: {color: tpl.bottomColor, fontSize: 9}}, "\u2666 \u2666 \u2666"));
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0 flex items-center justify-center", style: {height: '18%', background: tpl.badgeBg, color: tpl.badgeColor, fontSize: 15}}, tpl.badgeGlyph), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '20%', bottom: '16%'}}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 900, fontSize: 15, letterSpacing: '0.5px'}, text: title})), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-2 inset-x-0 flex items-center justify-center", style: {color: tpl.bottomColor, fontSize: 9}}, "\u2666 \u2666 \u2666"));
     case 'centered':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontWeight: tpl.fontWeight, fontSize: tpl.fontSize, letterSpacing: tpl.letterSpacing}}, title));
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden"}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontWeight: tpl.fontWeight, fontSize: tpl.fontSize, letterSpacing: tpl.letterSpacing}, text: title}));
     case 'wide-list':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden p-2"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 900, fontSize: 22, letterSpacing: '0.5px'}}, title));
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden p-2"}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 900, fontSize: 22, letterSpacing: '0.5px'}, text: title}));
     case 'split-halves':
-      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0 flex items-center justify-center overflow-hidden", style: {height: '50%', background: tpl.topBg}}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.topColor, fontFamily: tpl.font, fontSize: 15}}, title)), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-0 left-0 right-0 flex items-center justify-center", style: {height: '50%', background: tpl.bottomBg}}));
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0 flex items-center justify-center overflow-hidden", style: {height: '50%', background: tpl.topBg}}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.topColor, fontFamily: tpl.font, fontSize: 15}, text: title})), /*#__PURE__*/React.createElement("div", {className: "absolute bottom-0 left-0 right-0 flex items-center justify-center", style: {height: '50%', background: tpl.bottomBg}}));
     case 'badge-title-mono':
-      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0 flex items-center justify-center", style: {height: '20%', background: tpl.badgeBg, color: tpl.badgeColor, fontFamily: tpl.font, fontWeight: 'bold', fontSize: 10}}, "BASIS"), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '22%', bottom: '10%'}}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontSize: 13}}, title)));
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 left-0 right-0 flex items-center justify-center", style: {height: '20%', background: tpl.badgeBg, color: tpl.badgeColor, fontFamily: tpl.font, fontWeight: 'bold', fontSize: 10}}, "BASIS"), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 flex items-center justify-center overflow-hidden", style: {top: '22%', bottom: '10%'}}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontSize: 13}, text: title})));
     case 'icon-title-specimen':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-between py-3"}, /*#__PURE__*/React.createElement("div", {className: "rounded-sm shrink-0", style: {width: 10, height: 10, border: `1px solid ${tpl.ink}`}}), /*#__PURE__*/React.createElement("div", {className: "flex-1 flex items-center justify-center overflow-hidden"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 13}}, title)), /*#__PURE__*/React.createElement("div", {className: "w-full shrink-0", style: {height: 1, background: `${tpl.ink}30`, marginBottom: 6}}), /*#__PURE__*/React.createElement("span", {style: {color: `${tpl.ink}90`, fontFamily: 'monospace', fontSize: 8}}, "AaBbCc"));
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-between py-3"}, /*#__PURE__*/React.createElement("div", {className: "rounded-sm shrink-0", style: {width: 10, height: 10, border: `1px solid ${tpl.ink}`}}), /*#__PURE__*/React.createElement("div", {className: "flex-1 flex items-center justify-center overflow-hidden"}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 13}, text: title})), /*#__PURE__*/React.createElement("div", {className: "w-full shrink-0", style: {height: 1, background: `${tpl.ink}30`, marginBottom: 6}}), /*#__PURE__*/React.createElement("span", {style: {color: `${tpl.ink}90`, fontFamily: 'monospace', fontSize: 8}}, "AaBbCc"));
     case 'title-circles':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-center gap-5"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontWeight: 'bold', fontSize: 16}}, title), /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-1.5 shrink-0"}, [0, 1].map(i => /*#__PURE__*/React.createElement("div", {key: i, className: "rounded-full", style: {width: 11, height: 11, background: tpl.circleColor}}))));
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-center gap-5"}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontFamily: tpl.font, fontWeight: 'bold', fontSize: 16}, text: title}), /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-1.5 shrink-0"}, [0, 1].map(i => /*#__PURE__*/React.createElement("div", {key: i, className: "rounded-full", style: {width: 11, height: 11, background: tpl.circleColor}}))));
     case 'sticker-emojis':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden", style: {background: tpl.stickerBg}}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.stickerColor, fontWeight: 'bold', fontSize: 12}}, title));
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden", style: {background: tpl.stickerBg}}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.stickerColor, fontWeight: 'bold', fontSize: 12}, text: title}));
     case 'title-stripes':
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-between py-4"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 13}}, title), /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-1 shrink-0"}, tpl.stripes.map((s, i) => /*#__PURE__*/React.createElement("div", {key: i, style: {width: 18, height: 3, background: s}}))));
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex flex-col items-center justify-between py-4"}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 13}, text: title}), /*#__PURE__*/React.createElement("div", {className: "flex flex-col gap-1 shrink-0"}, tpl.stripes.map((s, i) => /*#__PURE__*/React.createElement("div", {key: i, style: {width: 18, height: 3, background: s}}))));
     default:
-      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden"}, /*#__PURE__*/React.createElement("span", {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 13}}, title));
+      return /*#__PURE__*/React.createElement("div", {className: "absolute inset-0 flex items-center justify-center overflow-hidden"}, /*#__PURE__*/React.createElement(SpineTitle, {style: {...verticalTextStyle(flat), color: tpl.ink, fontWeight: 'bold', fontSize: 13}, text: title}));
   }
 };
 const LampArt = ({variant, lamp, beam}) => {
@@ -1185,31 +1207,46 @@ const MarqueeText = ({text, className, style}) => {
     /*#__PURE__*/React.createElement("div", {ref: textRef, className: distance > 0 ? 'marquee-track' : '', style: {display: 'inline-block', whiteSpace: 'nowrap', '--marquee-distance': `-${distance}px`}}, text));
 };
 // A full title remains available to assistive technology and in the rename field.
-const ReaderTitle = ({text, onRename, color}) => {
-  const box = useRef(null), track = useRef(null);
+const ReaderTitle = ({text, onRename, onEdit, color}) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(text);
+  const [error, setError] = useState('');
+  const box = useRef(null), track = useRef(null), saving = useRef(false), cancel = useRef(false);
   useEffect(() => {
+    if (editing) return;
     const el = track.current, viewport = box.current;
-    let animation;
+    let animation, previous = -1;
     const measure = () => {
-      animation?.cancel();
       const distance = Math.max(0, el.scrollWidth - viewport.clientWidth);
-      viewport.style.textAlign = distance > 0 ? 'left' : 'center';
-      if (!distance || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      const travel = Math.max(4000, distance / 35 * 1000);
-      const duration = Math.max(20000, travel + 10000);
+      if (distance === previous) return;
+      previous = distance; animation?.cancel();
+      viewport.style.textAlign = distance ? 'left' : 'center';
+      if (!distance || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const duration = Math.max(20000, distance / 35 * 1000 + 6000);
       animation = el.animate([
-        {transform:'translateX(0)', offset:0},
-        {transform:'translateX(0)', offset:(duration-travel-3000)/duration},
-        {transform:`translateX(-${distance}px)`, offset:(duration-3000)/duration},
-        {transform:`translateX(-${distance}px)`, offset:(duration-1000)/duration},
-        {transform:'translateX(0)', offset:1}
+        {transform:'translateX(0)',offset:0},
+        {transform:'translateX(0)',offset:2000/duration},
+        {transform:`translateX(-${distance}px)`,offset:0.82},
+        {transform:`translateX(-${distance}px)`,offset:0.95},
+        {transform:'translateX(0)',offset:1}
       ], {duration, iterations:Infinity});
     };
     const observer = new ResizeObserver(measure);
     observer.observe(viewport); observer.observe(el); measure();
     return () => {observer.disconnect(); animation?.cancel();};
-  }, [text]);
-  return React.createElement('button', {ref:box, type:'button', className:'reader-title font-display text-sm font-semibold', style:{color}, title:'Rename: '+text, 'aria-label':'Rename file: '+text, onClick:e=>{e.stopPropagation(); onRename();}}, React.createElement('span', {ref:track, className:'reader-title-track'}, text));
+  }, [text, editing]);
+  const commit = async () => {
+    if (cancel.current || saving.current) return;
+    if (!draft.trim() || draft.trim() === text) {setEditing(false); return;}
+    saving.current = true;
+    try {await onRename(draft.trim()); setEditing(false); setError('');}
+    catch (_) {setError('Could not save. Try again.');}
+    finally {saving.current = false;}
+  };
+  if (editing) return React.createElement('div', {onClick:e=>e.stopPropagation()},
+    React.createElement('input', {autoFocus:true, value:draft, 'aria-label':'File title', onFocus:e=>e.target.select(), onChange:e=>setDraft(e.target.value), onBlur:commit, onKeyDown:e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault(); commit();} if(e.key==='Escape'){cancel.current=true; setEditing(false);}}, className:'font-display text-sm font-semibold', style:{width:'100%', minWidth:0, color, background:'transparent', borderBottom:'1px solid currentColor', outlineOffset:3, padding:'4px 0'}}),
+    error && React.createElement('span', {role:'alert', style:{color,fontSize:12}},error));
+  return React.createElement('button', {ref:box, type:'button', className:'reader-title font-display text-sm font-semibold', style:{color}, title:text, 'aria-label':'Edit title: '+text, onClick:e=>{e.stopPropagation(); cancel.current=false; setDraft(text); setError(''); onEdit(); setEditing(true);}}, React.createElement('span', {ref:track, className:'reader-title-track', style:{width:'max-content',maxWidth:'none'}}, text));
 };
 const renderRichSegment = (wordsSlice, startIndex, chapters) => {
   const nodes = [];
@@ -1396,7 +1433,7 @@ function App() {
     setMeasuredWpm(null);
     speedTestStartRef.current = null;
   };
-  const ONBOARD_SETUP_STEPS = ['font', 'size', 'theme', 'speed', 'books'];
+  const ONBOARD_SETUP_STEPS = ['font', 'size', 'theme', 'speed'];
   const TOTAL_INTRO_STEPS = INTRO_SLIDES.length + ONBOARD_SETUP_STEPS.length;
   // `selectedOverride` lets a "skip" action force an empty selection regardless of what's
   // checked in onboardSelectedBooks (see skipIntro below) — without it, "skip" would silently
@@ -1407,7 +1444,7 @@ function App() {
   const finishIntro = selectedOverride => {
     try { localStorage.setItem(INTRO_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
     const selected = selectedOverride || onboardSelectedBooks;
-    const toAdd = (window.CURATED_BOOKS || []).filter(b => selected.has(b.id));
+    const toAdd = [];
     if (toAdd.length > 0) {
       setBooks(prev => {
         const dupKey = b => `${(b.title || '').trim().toLowerCase()}|${(b.author || '').trim().toLowerCase()}`;
@@ -1708,19 +1745,11 @@ function App() {
 
   useEffect(() => {
     setIsLoadingBooks(true);
-    idbGetAllBooks().then(async stored => {
-      let alreadySeeded = null;
-      try { alreadySeeded = localStorage.getItem(IDB_SEEDED_KEY); } catch (e) { /* ignore */ }
-      if (stored.length === 0 && !alreadySeeded) {
-        await Promise.all(PLACEHOLDER_BOOKS.map(b => idbPutBook(b)));
-        try { localStorage.setItem(IDB_SEEDED_KEY, '1'); } catch (e) { /* ignore */ }
-        setBooks(PLACEHOLDER_BOOKS);
-      } else {
-        setBooks(stored.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
-      }
+    idbGetAllBooks().then(stored => {
+      setBooks(stored.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
     }).catch(err => {
-      console.error('IndexedDB load failed, falling back to in-memory demo books:', err);
-      setBooks(PLACEHOLDER_BOOKS);
+      console.error('IndexedDB load failed:', err);
+      setBooks([]);
     }).finally(() => setIsLoadingBooks(false));
   }, []);
 
@@ -2276,10 +2305,9 @@ function App() {
       window.removeEventListener('pagehide', flush);
     };
   }, []);
-  const renameActiveBook = async () => {
+  const renameActiveBook = async entered => {
     if (!activeBook) return;
     setIsPlaying(false);
-    const entered = window.prompt('File name', activeBook.title);
     if (entered === null || !entered.trim() || entered.trim() === activeBook.title) return;
     const updated = {...activeBook, title: entered.trim(), progress: wordIndex};
     try {
@@ -2287,7 +2315,7 @@ function App() {
       setBooks(prev => prev.map(b => b.id === updated.id ? {...b, title: updated.title} : b));
       setActiveBook(prev => prev?.id === updated.id ? {...prev, title: updated.title, progress: wordIndex} : prev);
     } catch (error) {
-      window.alert('Could not save this name. Please try again.');
+      throw error;
     }
   };
   const closeBook = async () => {
@@ -2498,7 +2526,7 @@ function App() {
     return '#' + [0,2,4].map(i => Math.round(parseInt(bg.slice(i,i+2),16)*0.92 + parseInt(ink.slice(i,i+2),16)*0.08).toString(16).padStart(2,'0')).join('');
   })();
   const readerPanelStyle = {background: raisedPanel, border: `1px solid ${readerTheme.ink}30`, boxShadow:'0 -8px 32px rgba(0,0,0,0.18)'};
-  const readerHeaderEl = activeBook ? /*#__PURE__*/React.createElement("header", {ref: rsvpHeaderRef, onClick: () => { if (isMobileView) setShowControls(s => !s); }, className: "flex items-center gap-3 px-4 shrink-0 relative", style: {zIndex: 20, background: readerTheme.bg, paddingTop: chromeVisible ? 'max(1rem, env(safe-area-inset-top))' : 'max(0.65rem, env(safe-area-inset-top))', paddingBottom: chromeVisible ? '0.75rem' : '0.5rem', borderBottom: `1px solid ${chromeVisible ? readerTheme.line : 'transparent'}`, transition: 'padding 0.28s ease, border-color 0.28s ease'}}, /*#__PURE__*/React.createElement("div", {style: {minWidth: isMobileView ? 88 : undefined, opacity: chromeVisible ? 1 : 0, pointerEvents: chromeVisible ? 'auto' : 'none', transform: chromeVisible ? 'translateY(0)' : 'translateY(-4px)', transition: 'opacity 0.25s ease, transform 0.25s ease'}}, /*#__PURE__*/React.createElement("button", {onClick: e => { e.stopPropagation(); closeBook(); }, className: "flex items-center gap-1 shrink-0 text-sm font-medium py-1 transition-transform duration-100 active:scale-90", style: {color: readerTheme.ink}}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 20}), !isMobileView && "Shelf")), /*#__PURE__*/React.createElement("div", {className: "flex-1 min-w-0 text-center px-2"}, /*#__PURE__*/React.createElement(ReaderTitle, {text: activeBook.title, onRename: renameActiveBook, color: readerTheme.ink}), readMode === 'normal' && pageMode === 'scroll' && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px] block mt-0.5", style: {color: readerTheme.muted}}, Math.round(wordIndex / Math.max(1, activeBook.words.length - 1) * 100), "% through")), /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-4 shrink-0 justify-end", style: {minWidth: isMobileView ? 88 : undefined, opacity: chromeVisible ? 1 : 0, pointerEvents: chromeVisible ? 'auto' : 'none', transform: chromeVisible ? 'translateY(0)' : 'translateY(-4px)', transition: 'opacity 0.25s ease, transform 0.25s ease'}, onClick: e => e.stopPropagation()}, /*#__PURE__*/React.createElement("button", {onClick: () => setShowThemePicker(true), className: "flex items-center justify-center transition-transform duration-100 active:scale-75", style: {color: readerTheme.ink}, "aria-label": "Customize"}, /*#__PURE__*/React.createElement(Sliders, {size: 19})), /*#__PURE__*/React.createElement("button", {onClick: () => setShowChapters(true), className: "flex items-center justify-center transition-transform duration-100 active:scale-75", style: {color: readerTheme.ink}, "aria-label": "Contents"}, /*#__PURE__*/React.createElement(ListIcon, {size: 19})), /*#__PURE__*/React.createElement("button", {onClick: () => {
+  const readerHeaderEl = activeBook ? /*#__PURE__*/React.createElement("header", {ref: rsvpHeaderRef, onClick: () => { if (isMobileView) setShowControls(s => !s); }, className: "flex items-center gap-3 px-4 shrink-0 relative", style: {zIndex: 20, background: readerTheme.bg, paddingTop: chromeVisible ? 'max(1rem, env(safe-area-inset-top))' : 'max(0.65rem, env(safe-area-inset-top))', paddingBottom: chromeVisible ? '0.75rem' : '0.5rem', borderBottom: `1px solid ${chromeVisible ? readerTheme.line : 'transparent'}`, transition: 'padding 0.28s ease, border-color 0.28s ease'}}, /*#__PURE__*/React.createElement("div", {style: {minWidth: isMobileView ? 88 : undefined, opacity: chromeVisible ? 1 : 0, pointerEvents: chromeVisible ? 'auto' : 'none', transform: chromeVisible ? 'translateY(0)' : 'translateY(-4px)', transition: 'opacity 0.25s ease, transform 0.25s ease'}}, /*#__PURE__*/React.createElement("button", {onClick: e => { e.stopPropagation(); closeBook(); }, className: "flex items-center gap-1 shrink-0 text-sm font-medium py-1 transition-transform duration-100 active:scale-90", style: {color: readerTheme.ink}}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 20}), !isMobileView && "Shelf")), /*#__PURE__*/React.createElement("div", {className: "flex-1 min-w-0 text-center px-2"}, /*#__PURE__*/React.createElement(ReaderTitle, {text: activeBook.title, onRename: renameActiveBook, onEdit: () => setIsPlaying(false), color: readerTheme.ink}), readMode === 'normal' && pageMode === 'scroll' && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px] block mt-0.5", style: {color: readerTheme.muted}}, Math.round(wordIndex / Math.max(1, activeBook.words.length - 1) * 100), "% through")), /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-4 shrink-0 justify-end", style: {minWidth: isMobileView ? 88 : undefined, opacity: chromeVisible ? 1 : 0, pointerEvents: chromeVisible ? 'auto' : 'none', transform: chromeVisible ? 'translateY(0)' : 'translateY(-4px)', transition: 'opacity 0.25s ease, transform 0.25s ease'}, onClick: e => e.stopPropagation()}, /*#__PURE__*/React.createElement("button", {onClick: () => setShowThemePicker(true), className: "flex items-center justify-center transition-transform duration-100 active:scale-75", style: {color: readerTheme.ink}, "aria-label": "Customize"}, /*#__PURE__*/React.createElement(Sliders, {size: 19})), /*#__PURE__*/React.createElement("button", {onClick: () => setShowChapters(true), className: "flex items-center justify-center transition-transform duration-100 active:scale-75", style: {color: readerTheme.ink}, "aria-label": "Contents"}, /*#__PURE__*/React.createElement(ListIcon, {size: 19})), /*#__PURE__*/React.createElement("button", {onClick: () => {
     setIsPlaying(false);
     setReadMode(m => m === 'rsvp' ? 'normal' : 'rsvp');
   }, className: "flex items-center justify-center transition-transform duration-100 active:scale-75", style: {color: readerTheme.ink}, "aria-label": readMode === 'rsvp' ? 'Switch to normal reading' : 'Switch to flow reading'}, readMode === 'rsvp' ? /*#__PURE__*/React.createElement(BookIcon, {size: 20}) : /*#__PURE__*/React.createElement(Zap, {size: 20})))) : null;
