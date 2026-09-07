@@ -396,7 +396,20 @@
     }
 
     .reader-title { width:100%; overflow:hidden; display:block; min-height:32px; }
-    .reader-title-track { display:inline-block; white-space:nowrap; }
+    .reader-title-track { display:inline-flex; width:max-content; max-width:none; white-space:nowrap; vertical-align:middle; }
+    .reader-title-copy { display:block; flex:none; white-space:nowrap; }
+    .reader-title-repeat { display:none; }
+    .reader-title[data-scrolling="true"] { text-align:left; }
+    .reader-title[data-scrolling="true"] .reader-title-copy { padding-right:48px; }
+    .reader-title[data-scrolling="true"] .reader-title-repeat { display:block; }
+    .reader-title[data-scrolling="true"] .reader-title-track {
+      animation: reader-title-loop var(--title-duration, 20s) linear infinite;
+      will-change:transform;
+    }
+    @keyframes reader-title-loop {
+      from { transform:translate3d(0,0,0); }
+      to { transform:translate3d(calc(-1 * var(--title-distance)),0,0); }
+    }
     .reader-title:focus-visible { outline:2px solid currentColor; outline-offset:3px; border-radius:4px; }
     .reader-customize { overscroll-behavior:contain; }
     @media (orientation:landscape) and (max-height:600px) {
@@ -1212,28 +1225,29 @@ const ReaderTitle = ({text, onRename, onEdit, color}) => {
   const [draft, setDraft] = useState(text);
   const [error, setError] = useState('');
   const box = useRef(null), track = useRef(null), saving = useRef(false), cancel = useRef(false);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (editing) return;
     const el = track.current, viewport = box.current;
-    let animation, previous = -1;
+    let disposed = false;
     const measure = () => {
-      const distance = Math.max(0, el.scrollWidth - viewport.clientWidth);
-      if (distance === previous) return;
-      previous = distance; animation?.cancel();
-      viewport.style.textAlign = distance ? 'left' : 'center';
-      if (!distance || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      const duration = Math.max(20000, distance / 35 * 1000 + 6000);
-      animation = el.animate([
-        {transform:'translateX(0)',offset:0},
-        {transform:'translateX(0)',offset:2000/duration},
-        {transform:`translateX(-${distance}px)`,offset:0.82},
-        {transform:`translateX(-${distance}px)`,offset:0.95},
-        {transform:'translateX(0)',offset:1}
-      ], {duration, iterations:Infinity});
+      if (disposed) return;
+      const first = el.firstElementChild;
+      // Measure the natural text, excluding the gap that joins the repeated copies.
+      const gap = viewport.dataset.scrolling === 'true' ? 48 : 0;
+      const width = first.offsetWidth - gap;
+      const overflowing = width > viewport.clientWidth + 1;
+      viewport.dataset.scrolling = String(overflowing);
+      viewport.style.textAlign = overflowing ? 'left' : 'center';
+      const distance = width + 48;
+      el.style.setProperty('--title-distance', distance + 'px');
+      el.style.setProperty('--title-duration', Math.max(12, distance / 28) + 's');
     };
     const observer = new ResizeObserver(measure);
-    observer.observe(viewport); observer.observe(el); measure();
-    return () => {observer.disconnect(); animation?.cancel();};
+    observer.observe(viewport); observer.observe(el.firstElementChild);
+    measure();
+    document.fonts?.ready.then(measure);
+    window.addEventListener('orientationchange', measure);
+    return () => {disposed = true; observer.disconnect(); window.removeEventListener('orientationchange', measure);};
   }, [text, editing]);
   const commit = async () => {
     if (cancel.current || saving.current) return;
@@ -1246,7 +1260,7 @@ const ReaderTitle = ({text, onRename, onEdit, color}) => {
   if (editing) return React.createElement('div', {onClick:e=>e.stopPropagation()},
     React.createElement('input', {autoFocus:true, value:draft, 'aria-label':'File title', onFocus:e=>e.target.select(), onChange:e=>setDraft(e.target.value), onBlur:commit, onKeyDown:e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault(); commit();} if(e.key==='Escape'){cancel.current=true; setEditing(false);}}, className:'font-display text-sm font-semibold', style:{width:'100%', minWidth:0, color, background:'transparent', borderBottom:'1px solid currentColor', outlineOffset:3, padding:'4px 0'}}),
     error && React.createElement('span', {role:'alert', style:{color,fontSize:12}},error));
-  return React.createElement('button', {ref:box, type:'button', className:'reader-title font-display text-sm font-semibold', style:{color}, title:text, 'aria-label':'Edit title: '+text, onClick:e=>{e.stopPropagation(); cancel.current=false; setDraft(text); setError(''); onEdit(); setEditing(true);}}, React.createElement('span', {ref:track, className:'reader-title-track', style:{width:'max-content',maxWidth:'none'}}, text));
+  return React.createElement('button', {ref:box, type:'button', className:'reader-title font-display text-sm font-semibold', style:{color}, title:text, 'aria-label':'Edit title: '+text, onClick:e=>{e.stopPropagation(); cancel.current=false; setDraft(text); setError(''); onEdit(); setEditing(true);}}, React.createElement('span', {ref:track, className:'reader-title-track'}, React.createElement('span', {className:'reader-title-copy'}, text), React.createElement('span', {className:'reader-title-copy reader-title-repeat', 'aria-hidden':true}, text)));
 };
 const renderRichSegment = (wordsSlice, startIndex, chapters) => {
   const nodes = [];
