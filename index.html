@@ -1234,6 +1234,59 @@ const MarqueeText = ({text, className, style}) => {
     /*#__PURE__*/React.createElement("div", {ref: textRef, className: distance > 0 ? 'marquee-track' : '', style: {display: 'inline-block', whiteSpace: 'nowrap', '--marquee-distance': `-${distance}px`}}, text));
 };
 // A full title remains available to assistive technology and in the rename field.
+const MonthlyReadingGrid = ({days,theme}) => {
+  const [offset,setOffset] = useState(0), [selected,setSelected] = useState(null);
+  const [goal,setGoal] = useState(() => {
+    try {const n=Number(localStorage.getItem('lamplight_daily_word_goal')); return Number.isSafeInteger(n)&&n>0?n:1000;} catch (_) {return 1000;}
+  });
+  const [goalDraft,setGoalDraft] = useState(String(goal));
+  const [goalMessage,setGoalMessage] = useState('');
+  const [editingGoal,setEditingGoal] = useState(false);
+  const cancelGoal = useRef(false);
+  const saveGoal = () => {
+    if(cancelGoal.current) return;
+    const n=Number(goalDraft);
+    if(!Number.isSafeInteger(n)||n<1) {setGoalMessage('Enter a whole number greater than zero.');return;}
+    try {localStorage.setItem('lamplight_daily_word_goal',String(n));setGoal(n);setGoalDraft(String(n));setGoalMessage('');setEditingGoal(false);}
+    catch (_) {setGoalMessage('Could not save your goal. Please try again.');}
+  };
+  const now = new Date();
+  const month = new Date(now.getFullYear(),now.getMonth()+offset,1);
+  const leading = (month.getDay()+6)%7;
+  const count = new Date(month.getFullYear(),month.getMonth()+1,0).getDate();
+  const todayKey = now.toISOString().slice(0,10);
+  const readingColor = blendColors(theme.bg, theme.chipText, 0.4);
+  const goalColor = theme.chipText;
+  const rule = theme.ink+'60';
+  const change = step => {setOffset(v=>Math.min(0,v+step));setSelected(null);};
+  return React.createElement('section',{className:'px-5 pb-5','aria-label':'Monthly reading activity'},
+    React.createElement('div',{className:'flex items-center justify-between mb-3'},
+      React.createElement('button',{'aria-label':'Previous month',onClick:()=>change(-1),className:'p-2',style:{color:theme.ink}},React.createElement(ChevronLeft,{size:18})),
+      React.createElement('span',{className:'text-sm font-semibold',style:{color:theme.ink},'aria-live':'polite'},month.toLocaleDateString(undefined,{month:'long',year:'numeric'})),
+      React.createElement('button',{'aria-label':'Next month',disabled:offset===0,onClick:()=>change(1),className:'p-2 disabled:opacity-25',style:{color:theme.ink}},React.createElement(ChevronRight,{size:18}))),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:0,width:'90%',margin:'0 auto',borderLeft:'1px solid '+rule,borderTop:'1px solid '+rule}},
+      ['M','T','W','T','F','S','S'].map((label,i)=>React.createElement('span',{key:'weekday'+i,className:'text-center text-xs',style:{color:theme.ink,padding:'7px 0',borderRight:'1px solid '+rule,borderBottom:'1px solid '+rule}},label)),
+      Array.from({length:Math.ceil((leading+count)/7)*7},(_,i)=>{
+        const date = i-leading+1;
+        if(date<1||date>count) return React.createElement('span',{key:'blank'+i,style:{borderRight:'1px solid '+rule,borderBottom:'1px solid '+rule}});
+        const key = month.getFullYear()+'-'+String(month.getMonth()+1).padStart(2,'0')+'-'+String(date).padStart(2,'0');
+        const words = days[key]?.words||0, future=key>todayKey;
+        const reachedGoal = words >= goal;
+        const fill = words ? Math.min(100,words/goal*100) : 0;
+        const label = new Date(month.getFullYear(),month.getMonth(),date).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+': '+words.toLocaleString()+' words';
+        return React.createElement('button',{key,type:'button',disabled:future,'aria-label':label,'aria-pressed':selected?.key===key,title:label,onClick:()=>setSelected({key,label}),style:{position:'relative',width:'100%',aspectRatio:'1',minWidth:0,overflow:'hidden',borderRadius:0,border:0,borderRight:'1px solid '+rule,borderBottom:'1px solid '+rule,background:'transparent',boxShadow:selected?.key===key?'inset 0 0 0 1px '+theme.ink:'none',outlineOffset:-2}},
+          React.createElement('span',{'aria-hidden':true,style:{position:'absolute',bottom:0,left:0,right:0,height:fill+'%',background:reachedGoal?goalColor:readingColor}}),
+          words>0 && React.createElement('svg',{'aria-hidden':true,viewBox:'0 0 100 100',style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none'}},
+            React.createElement('text',{x:50,y:51,dominantBaseline:'middle',textAnchor:'middle',fill:fill>=65?(isLightColor(reachedGoal?goalColor:readingColor)?'#14202a':'#ffffff'):theme.ink,fontFamily:'system-ui, sans-serif',fontWeight:600,fontSize:Math.min(30,145/String(words).length)},String(words))));
+      })),
+    React.createElement('div',{className:'flex items-center justify-center gap-4 mt-3',style:{fontSize:12,color:theme.muted}},[['Reading days',readingColor],['Goal reached',goalColor]].map(([label,color])=>React.createElement('span',{key:label,style:{display:'inline-flex',alignItems:'center',gap:5}},React.createElement('span',{'aria-hidden':true,style:{width:9,height:9,background:color}}),label))),
+    React.createElement('div',{className:'flex items-center justify-center gap-2 mt-3',style:{fontSize:12,color:theme.muted}},
+      React.createElement('span',null,'Daily goal'),
+      editingGoal ? React.createElement('input',{'aria-label':'Daily word goal',autoFocus:true,type:'number',inputMode:'numeric',min:1,step:1,value:goalDraft,onFocus:e=>e.target.select(),onChange:e=>{setGoalDraft(e.target.value);setGoalMessage('');},onBlur:saveGoal,onKeyDown:e=>{if(e.key==='Enter'){e.preventDefault();saveGoal();}if(e.key==='Escape'){cancelGoal.current=true;setEditingGoal(false);setGoalMessage('');}},style:{width:85,fontSize:16,color:theme.ink,background:'transparent',border:0,borderBottom:'1px solid '+rule,borderRadius:0,padding:'4px 0'}})
+      : React.createElement('button',{type:'button','aria-label':'Edit daily word goal',onClick:()=>{cancelGoal.current=false;setGoalDraft(String(goal));setEditingGoal(true);},style:{color:theme.ink,padding:'8px 0',textDecoration:'underline',textUnderlineOffset:3}},goal.toLocaleString()+' words')),
+    goalMessage && React.createElement('p',{role:'status',className:'text-xs mt-1',style:{color:theme.muted}},goalMessage),
+    React.createElement('p',{'aria-live':'polite',className:'text-xs mt-2',style:{color:theme.muted,minHeight:32}},selected?selected.label:''));
+};
 const PencilIcon = ({size=22}) => React.createElement('svg',{width:size,height:size,viewBox:'0 0 24 24',...IconProps},React.createElement('path',{d:'m16 3 5 5-12 12-6 1 1-6L16 3Z M14 5l5 5'}));
 const BookActions = ({book, theme, initialMode, onClose, onUpdate, onDelete}) => {
   const [mode,setMode] = useState(initialMode), [draft,setDraft] = useState(book.title);
@@ -1357,7 +1410,6 @@ function App() {
   const [shelfEditor, setShelfEditor] = useState(null);
   const wpmThumbRef = useRef(null);
   const wpmFillRef = useRef(null);
-  const heatmapScrollRef = useRef(null);
   const shelfScrollPosRef = useRef(null);
   // Measures the real rendered height of whichever header is on screen, so the moon/sun can be
   // centered exactly on its bottom edge (half hidden behind it) regardless of safe-area insets
@@ -1388,12 +1440,6 @@ function App() {
   const [lastOpenedMap, setLastOpenedMap] = useState(initialSettings.lastOpenedMap ?? {});
   const [showShelfControls, setShowShelfControls] = useState(false);
   const [showStatsPanel, setShowStatsPanel] = useState(false);
-  useEffect(() => {
-    if (showStatsPanel && heatmapScrollRef.current) {
-      // Show the most recent activity by default rather than the oldest.
-      heatmapScrollRef.current.scrollLeft = heatmapScrollRef.current.scrollWidth;
-    }
-  }, [showStatsPanel]);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   // Keep the frequently used stack toggle in the Shelf customize header instead of
   // spending a full content row on a single switch. The node is returned before the
@@ -2533,41 +2579,6 @@ function App() {
     return {key, label: d.toLocaleDateString(undefined, {weekday: 'narrow'}), words: day?.words || 0, avgWpm: day && day.words > 0 ? Math.round(day.wpmSum / day.words) : 0};
   });
   const maxDayWords = Math.max(1, ...last7Days.map(d => d.words));
-  // GitHub-style activity heatmap: a rolling window of full weeks (Sun–Sat) ending on the
-  // upcoming Saturday, so the current week is never a truncated column. Intensity is bucketed
-  // relative to the single most active day on record, not an absolute word count, so the
-  // heatmap stays meaningful whether someone reads 500 or 5,000 words on a big day.
-  const HEATMAP_WEEKS = 30;
-  const heatmapToday = new Date();
-  heatmapToday.setHours(0, 0, 0, 0);
-  const heatmapWeekEnd = new Date(heatmapToday);
-  heatmapWeekEnd.setDate(heatmapToday.getDate() + (6 - heatmapToday.getDay()));
-  const heatmapStart = new Date(heatmapWeekEnd);
-  heatmapStart.setDate(heatmapWeekEnd.getDate() - HEATMAP_WEEKS * 7 + 1);
-  const heatmapDays = Array.from({length: HEATMAP_WEEKS * 7}, (_, i) => {
-    const d = new Date(heatmapStart);
-    d.setDate(heatmapStart.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    const entry = readingStats.days[key];
-    return {key, date: d, words: entry?.words || 0, isFuture: d > heatmapToday};
-  });
-  const heatmapWeeksData = Array.from({length: HEATMAP_WEEKS}, (_, w) => heatmapDays.slice(w * 7, w * 7 + 7));
-  const heatmapMaxWords = Math.max(1, ...heatmapDays.map(d => d.words));
-  const heatmapIntensity = words => {
-    if (!words) return 0;
-    const ratio = words / heatmapMaxWords;
-    if (ratio > 0.75) return 4;
-    if (ratio > 0.5) return 3;
-    if (ratio > 0.25) return 2;
-    return 1;
-  };
-  let heatmapLastMonth = null;
-  const heatmapMonthLabels = heatmapWeeksData.map(week => {
-    const m = week[0].date.getMonth();
-    if (m === heatmapLastMonth) return '';
-    heatmapLastMonth = m;
-    return week[0].date.toLocaleDateString(undefined, {month: 'short'});
-  });
   const booksFinished = books.filter(b => b.words.length > 0 && b.progress >= b.words.length * 0.95).length;
   const [fileTypeFilter, setFileTypeFilter] = useState('all');
   const [showFileFilter, setShowFileFilter] = useState(false);
@@ -2771,8 +2782,7 @@ function App() {
   const SLEEP_TIMER_PRESETS = [15, 30, 45, 60];
   const sleepTimerSection = /*#__PURE__*/React.createElement("div", {className: "px-5 pb-3"}, /*#__PURE__*/React.createElement("div", {className: "flex items-center justify-between mb-1.5"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide", style: {color: readerTheme.muted}}, "Sleep timer"), sleepTimerMinutes && /*#__PURE__*/React.createElement("span", {className: "font-mono text-[10px]", style: {color: readerTheme.chipText}}, `${Math.floor(sleepTimerRemaining / 60)}:${String(sleepTimerRemaining % 60).padStart(2, '0')}`)), /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-4 gap-1.5"}, SLEEP_TIMER_PRESETS.map(mins => /*#__PURE__*/React.createElement("button", {key: mins, onClick: () => setSleepTimerMinutes(prev => prev === mins ? null : mins), className: "px-2 py-1.5 rounded-lg text-xs font-semibold text-center transition-colors", style: {background: sleepTimerMinutes === mins ? "rgba(255,255,255,0.08)" : "transparent", border: `1px solid ${sleepTimerMinutes === mins ? readerTheme.chipText : "rgba(255,255,255,0.15)"}`, color: readerTheme.ink}}, `${mins}m`))));
   const spacerSection = /*#__PURE__*/React.createElement("div", {className: "px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"});
-  const HEATMAP_COLORS = [null, `${readerTheme.chipText}33`, `${readerTheme.chipText}66`, `${readerTheme.chipText}99`, readerTheme.chipText];
-  const heatmapSection = /*#__PURE__*/React.createElement("div", {className: "px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"}, /*#__PURE__*/React.createElement("p", {className: "text-[10px] font-mono uppercase tracking-wide mb-2.5", style: {color: readerTheme.muted}}, "Reading activity"), /*#__PURE__*/React.createElement("div", {className: "overflow-x-auto no-scrollbar", ref: heatmapScrollRef}, /*#__PURE__*/React.createElement("div", {style: {display: "inline-flex", flexDirection: "column", gap: 3}}, /*#__PURE__*/React.createElement("div", {style: {display: "flex", gap: 3}}, heatmapWeeksData.map((week, wi) => /*#__PURE__*/React.createElement("span", {key: wi, style: {width: 11, fontSize: 9, fontFamily: "monospace", color: readerTheme.muted, flexShrink: 0}}, heatmapMonthLabels[wi]))), /*#__PURE__*/React.createElement("div", {style: {display: "flex", gap: 3}}, heatmapWeeksData.map((week, wi) => /*#__PURE__*/React.createElement("div", {key: wi, style: {display: "flex", flexDirection: "column", gap: 3}}, week.map((day, di) => /*#__PURE__*/React.createElement("div", {key: di, title: `${day.key}: ${day.words} words`, style: {width: 11, height: 11, borderRadius: 3, flexShrink: 0, background: day.isFuture ? "transparent" : (HEATMAP_COLORS[heatmapIntensity(day.words)] || readerTheme.track)}}))))))));
+  const heatmapSection = React.createElement(MonthlyReadingGrid, {days:readingStats.days,theme:readerTheme});
   // Progress can read as a percentage, or as an estimated page number (using the same
   // words-per-page figure the paginated view already uses) for anyone who finds a bare
   // percentage harder to picture than "page 12 of 340".
