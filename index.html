@@ -437,8 +437,8 @@
     .rsvp-quick-controls { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
     .quick-sleep-timers { display:flex; align-items:center; margin-left:auto; }
     .quick-sleep-timer { display:flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; background:transparent; border:0; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-    .quick-sleep-timer__face { width:36px; height:36px; border-radius:50%; border:1px solid currentColor; color:var(--timer-ink); background:var(--timer-surface); display:flex; align-items:center; justify-content:center; font-size:12px; transition:color .2s, background .2s, transform .2s; }
-    .quick-sleep-timer[aria-pressed="true"] .quick-sleep-timer__face { color:#f79728; background:var(--timer-active-surface); }
+    .quick-sleep-timer__face { width:36px; height:36px; border-radius:50%; border:1px solid var(--timer-border); color:var(--timer-ink); background:var(--timer-surface); display:flex; align-items:center; justify-content:center; font-size:12px; transition:color .2s, background .2s, transform .2s; }
+    .quick-sleep-timer[aria-pressed="true"] .quick-sleep-timer__face { color:#f79728; border-color:#f79728; background:var(--timer-active-surface); }
     .quick-sleep-timer:active .quick-sleep-timer__face { transform:scale(.94); }
     .quick-sleep-timer:focus-visible { outline:2px solid #f79728; outline-offset:1px; border-radius:50%; }
     @media (max-width:480px) {
@@ -1337,7 +1337,7 @@ const FullCoverSwitch = ({checked,onChange,theme,chapterPause=false,variant="cov
     React.createElement('span',{className:'cover-switch__track','aria-hidden':true},React.createElement('span',{className:'cover-switch__handle'},icon)));
 };
 const SleepTimerButtons = ({minutes,onChange,theme}) => React.createElement('div',{role:'group','aria-label':'Sleep timer',className:'quick-sleep-timers'},
-  [15,30,45,60].map(value=>React.createElement('button',{key:value,type:'button','aria-label':minutes===value?`Cancel ${value} minute sleep timer`:`Set ${value} minute sleep timer`,'aria-pressed':minutes===value,onClick:()=>onChange(minutes===value?null:value),className:'quick-sleep-timer',style:{'--timer-ink':theme.ink,'--timer-surface':blendColors(theme.bg,theme.ink,0.09),'--timer-active-surface':blendColors(theme.bg,'#f79728',0.16)}},
+  [15,30,45,60].map(value=>React.createElement('button',{key:value,type:'button','aria-label':minutes===value?`Cancel ${value} minute sleep timer`:`Set ${value} minute sleep timer`,'aria-pressed':minutes===value,onClick:()=>onChange(minutes===value?null:value),className:'quick-sleep-timer',style:{'--timer-ink':blendColors(theme.bg,theme.ink,0.52),'--timer-border':blendColors(theme.bg,theme.ink,0.18),'--timer-surface':blendColors(theme.bg,theme.ink,0.025),'--timer-active-surface':blendColors(theme.bg,'#f79728',0.16)}},
     React.createElement('span',{className:'quick-sleep-timer__face'},value,React.createElement('span',{style:{fontSize:9,marginLeft:1}},'m')))));
 const PencilIcon = ({size=22}) => React.createElement('svg',{width:size,height:size,viewBox:'0 0 24 24',...IconProps},React.createElement('path',{d:'m16 3 5 5-12 12-6 1 1-6L16 3Z M14 5l5 5'}));
 const BookActions = ({book, theme, initialMode, onClose, onUpdate, onDelete}) => {
