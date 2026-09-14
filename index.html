@@ -1448,6 +1448,7 @@ function App() {
   const [wpm, setWpm] = useState(initialSettings.wpm ?? 300);
   const [wordIndex, setWordIndex] = useState(0);
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
+  const [isDraggingSpeed, setIsDraggingSpeed] = useState(false);
   const [rsvpTransitionActive, setRsvpTransitionActive] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
@@ -2828,7 +2829,34 @@ function App() {
     speedRulerTicks.push(/*#__PURE__*/React.createElement("div", {key: 't' + v, className: "absolute rounded-full", style: {left: (v - SPEED_MIN) * SPEED_PX, top: isMajor ? 0 : (isMid ? 4 : 8), width: isMajor ? 2 : 1.5, height: isMajor ? 16 : (isMid ? 11 : 6), background: readerTheme.ink, opacity: isMajor ? 0.55 : (isMid ? 0.3 : 0.16), transform: 'translateX(-50%)'}}));
     if (isMajor) speedRulerTicks.push(/*#__PURE__*/React.createElement("span", {key: 'l' + v, className: "absolute font-mono text-[9px] font-bold whitespace-nowrap", style: {left: (v - SPEED_MIN) * SPEED_PX, top: 20, transform: 'translateX(-50%)', color: readerTheme.muted}}, v));
   }
-  const speedTrackContent = /*#__PURE__*/React.createElement("div", {className: "relative w-full", style: {height: 38, overflow: 'hidden'}}, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 h-full", style: {left: '50%', transform: `translateX(-${(wpm - SPEED_MIN) * SPEED_PX}px)`, transition: 'transform 0.15s ease-out'}}, speedRulerTicks), /*#__PURE__*/React.createElement("div", {className: "absolute rounded-full pointer-events-none", style: {left: '50%', top: 0, width: 3, height: 26, transform: 'translateX(-50%)', background: readerTheme.chipText, boxShadow: `0 0 0 3px ${readerTheme.chipText}22`}}), /*#__PURE__*/React.createElement("input", {type: "range", min: SPEED_MIN, max: SPEED_MAX, step: 1, value: wpm, onChange: e => setWpm(Number(e.target.value)), "aria-label": "Reading speed in words per minute", className: "absolute inset-0 w-full h-full opacity-0 cursor-pointer", style: {margin: 0, touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none', zIndex: 5}}));
+  const speedTrackFromPointer = (e, target) => {
+    // Matches how a native <input type="range"> works: the value tracks the pointer's absolute
+    // position across the element's own width (or height, when rotated -90deg in the landscape
+    // widget), not the distance dragged — so grabbing anywhere jumps straight to that value.
+    const rect = target.getBoundingClientRect();
+    const ratio = isSmallLandscape ? (e.clientY - rect.top) / rect.height : (e.clientX - rect.left) / rect.width;
+    const clamped = Math.min(1, Math.max(0, ratio));
+    return Math.round(SPEED_MIN + clamped * (SPEED_MAX - SPEED_MIN));
+  };
+  const handleSpeedTrackPointerDown = e => {
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setIsDraggingSpeed(true);
+    setWpm(speedTrackFromPointer(e, e.currentTarget));
+  };
+  const handleSpeedTrackPointerMove = e => {
+    if (e.buttons === 0 && e.pointerType !== 'touch') return;
+    if (!isDraggingSpeed) return;
+    setWpm(speedTrackFromPointer(e, e.currentTarget));
+  };
+  const handleSpeedTrackPointerUp = e => {
+    setIsDraggingSpeed(false);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+  const handleSpeedTrackKeyDown = e => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { setWpm(v => Math.max(SPEED_MIN, v - 10)); e.preventDefault(); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { setWpm(v => Math.min(SPEED_MAX, v + 10)); e.preventDefault(); }
+  };
+  const speedTrackContent = /*#__PURE__*/React.createElement("div", {className: "relative w-full", style: {height: 38, overflow: 'hidden'}}, /*#__PURE__*/React.createElement("div", {className: "absolute top-0 h-full", style: {left: '50%', transform: `translateX(-${(wpm - SPEED_MIN) * SPEED_PX}px)`, transition: isDraggingSpeed ? 'none' : 'transform 0.15s ease-out'}}, speedRulerTicks), /*#__PURE__*/React.createElement("div", {className: "absolute rounded-full pointer-events-none", style: {left: '50%', top: 0, width: 3, height: 26, transform: 'translateX(-50%)', background: readerTheme.chipText, boxShadow: `0 0 0 3px ${readerTheme.chipText}22`}}), /*#__PURE__*/React.createElement("div", {role: "slider", tabIndex: 0, "aria-valuemin": SPEED_MIN, "aria-valuemax": SPEED_MAX, "aria-valuenow": wpm, "aria-label": "Reading speed in words per minute", onPointerDown: handleSpeedTrackPointerDown, onPointerMove: handleSpeedTrackPointerMove, onPointerUp: handleSpeedTrackPointerUp, onPointerCancel: handleSpeedTrackPointerUp, onKeyDown: handleSpeedTrackKeyDown, className: "absolute inset-0 w-full h-full cursor-pointer", style: {margin: 0, touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none', zIndex: 5}}));
   const rsvpControlDivider = /*#__PURE__*/React.createElement("div", {"aria-hidden": true, style: {width: 1, alignSelf: 'center', height: '52%', background: `${readerTheme.playIcon}2e`}});
   const rsvpControlsBar = /*#__PURE__*/React.createElement("div", {className: "w-full flex items-center justify-center rounded-[26px]", style: {background: readerTheme.playBg, height: 64, padding: '0 4px', boxShadow: `0 6px 16px -6px ${readerTheme.playBg}80, inset 0 1px 0 ${readerTheme.playIcon}14`}}, /*#__PURE__*/React.createElement("button", {onClick: () => handleHoldClick('backward'), onMouseDown: () => startHoldStep('backward'), onMouseUp: stopHoldStep, onMouseLeave: stopHoldStep, onTouchStart: () => startHoldStep('backward'), onTouchEnd: stopHoldStep, onTouchCancel: stopHoldStep, "aria-label": "Previous word", className: "pill-btn flex-1 h-full flex items-center justify-center active:opacity-70", style: {color: readerTheme.playIcon, WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none'}}, /*#__PURE__*/React.createElement(SkipBack, {size: 20})), rsvpControlDivider, /*#__PURE__*/React.createElement("button", {onClick: () => togglePlay(), "aria-label": isPlaying ? "Pause" : "Play", className: "pill-btn flex-1 h-full flex items-center justify-center active:opacity-70", style: {color: readerTheme.playIcon, WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none'}}, isPlaying ? /*#__PURE__*/React.createElement(Pause, {size: 22}) : /*#__PURE__*/React.createElement(Play, {size: 22, className: "ml-0.5"})), rsvpControlDivider, /*#__PURE__*/React.createElement("button", {onClick: () => handleHoldClick('forward'), onMouseDown: () => startHoldStep('forward'), onMouseUp: stopHoldStep, onMouseLeave: stopHoldStep, onTouchStart: () => startHoldStep('forward'), onTouchEnd: stopHoldStep, onTouchCancel: stopHoldStep, "aria-label": "Next word", className: "pill-btn flex-1 h-full flex items-center justify-center active:opacity-70", style: {color: readerTheme.playIcon, WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none'}}, /*#__PURE__*/React.createElement(SkipForward, {size: 20})));
   return /*#__PURE__*/React.createElement("div", {className: "w-full", style: {height: '100dvh', background: '#000', '--font-display': theme.display}}, activeBook ?
