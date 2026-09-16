@@ -1362,18 +1362,23 @@ const SleepTimerProgressBorder = ({progress, color, radius}) => {
   }, []);
   const {w, h} = size;
   if (!w || !h) return /*#__PURE__*/React.createElement("div", {ref: ref, className: "absolute inset-0 pointer-events-none", "aria-hidden": true});
+  // gap: the visible breathing room between the panel's edge and the glowing border, matching
+  // the floating-outline look of the reference (the border does not hug the container).
+  const gap = 10;
   const strokeWidth = 3;
   const inset = strokeWidth / 2;
-  const r = Math.min(radius, Math.min(w, h) / 2 - inset);
-  const pathW = w - strokeWidth;
-  const pathH = h - strokeWidth;
+  const boxW = w + gap * 2;
+  const boxH = h + gap * 2;
+  const r = Math.min(radius + gap, Math.min(boxW, boxH) / 2 - inset);
+  const pathW = boxW - strokeWidth;
+  const pathH = boxH - strokeWidth;
   // Rounded-rect path starting at top-center so the fill reads like the reference: it grows
   // out from the top and wraps clockwise around the full perimeter.
   const d = `M ${inset + pathW / 2} ${inset} H ${inset + pathW - r} A ${r} ${r} 0 0 1 ${inset + pathW} ${inset + r} V ${inset + pathH - r} A ${r} ${r} 0 0 1 ${inset + pathW - r} ${inset + pathH} H ${inset + r} A ${r} ${r} 0 0 1 ${inset} ${inset + pathH - r} V ${inset + r} A ${r} ${r} 0 0 1 ${inset + r} ${inset} Z`;
   const perimeter = 2 * (pathW + pathH) - 8 * r + 2 * Math.PI * r;
   const dashOffset = perimeter * (1 - Math.min(1, Math.max(0, progress)));
-  return /*#__PURE__*/React.createElement("div", {ref: ref, className: "absolute pointer-events-none", style: {top: -1, left: -1, right: -1, bottom: -1}, "aria-hidden": true},
-    /*#__PURE__*/React.createElement("svg", {width: w, height: h, style: {position: 'absolute', top: 0, left: 0, overflow: 'visible'}},
+  return /*#__PURE__*/React.createElement("div", {ref: ref, className: "absolute pointer-events-none", style: {top: -gap, left: -gap, right: -gap, bottom: -gap}, "aria-hidden": true},
+    /*#__PURE__*/React.createElement("svg", {width: boxW, height: boxH, style: {position: 'absolute', top: 0, left: 0, overflow: 'visible'}},
       /*#__PURE__*/React.createElement("path", {d: d, fill: "none", stroke: color, strokeWidth: strokeWidth, strokeLinecap: "round", strokeDasharray: perimeter, strokeDashoffset: dashOffset})
     )
   );
