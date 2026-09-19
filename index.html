@@ -199,6 +199,11 @@
       -webkit-user-select: none;
       user-select: none;
     }
+    /* Per-word span used for hit-testing and highlighting in normal reading mode. Rounded +
+       padded slightly so a highlighted run reads as one continuous band across wrapped lines,
+       matching how e-reader highlights usually look, rather than a tight box-per-word. */
+    .reading-word { border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+    .reading-word--marked { padding: 0.05em 0; }
     @media (min-width: 768px) {
       .reading-page { max-width: 760px; }
     }
@@ -1273,6 +1278,52 @@ const RSVPContextPreview = ({words, wordIndex, ink, pivotColor, visible}) => {
     /*#__PURE__*/React.createElement("p", {className: "font-display text-center leading-relaxed", style: {color: ink, opacity: 0.4, fontSize: '1rem', maxWidth: 480}},
       slice.map((w, i) => w === PARA_BREAK ? null : /*#__PURE__*/React.createElement("span", {key: i, style: (start + i) === wordIndex ? {color: pivotColor, opacity: 1, fontWeight: 600} : undefined}, w + ' '))));
 };
+// Floating action bar shown while a word range is selected in normal reading mode (long-press
+// a word to start one). Pinned to the bottom of the screen rather than anchored to the text
+// itself — the selected range can span multiple wrapped lines or even scroll out of view as
+// the reader drags a handle, so a fixed bar is far more robust than trying to track a caret
+// rect. Shows a short preview of what's selected so it's clear what Highlight/Copy/RSVP act on.
+// Draggable start/end handles for the word-range selection, positioned over the live DOM spans
+// (found by data-word-idx) rather than computed from layout math, so they track wrapped lines,
+// font size, and scrolling exactly the way the text itself does. Re-measures on every
+// scroll/resize while a selection is active since the reading view can scroll under it.
+const SelectionHandles = ({start, end, onDragStart, color}) => {
+  const [rects, setRects] = useState(null);
+  useEffect(() => {
+    const measure = () => {
+      const startEl = document.querySelector(`[data-word-idx="${start}"]`);
+      const endEl = document.querySelector(`[data-word-idx="${end}"]`);
+      if (!startEl || !endEl) { setRects(null); return; }
+      const sr = startEl.getBoundingClientRect();
+      const er = endEl.getBoundingClientRect();
+      setRects({start: sr, end: er});
+    };
+    measure();
+    window.addEventListener('scroll', measure, true);
+    window.addEventListener('resize', measure);
+    const id = setInterval(measure, 200); // catches page-turn/scroll-snap animations settling
+    return () => {
+      window.removeEventListener('scroll', measure, true);
+      window.removeEventListener('resize', measure);
+      clearInterval(id);
+    };
+  }, [start, end]);
+  if (!rects) return null;
+  const handle = (rect, edge, x) => /*#__PURE__*/React.createElement("div", {key: edge, onMouseDown: e => { e.stopPropagation(); onDragStart(edge); }, onTouchStart: e => { e.stopPropagation(); onDragStart(edge); }, className: "fixed z-[65]", style: {left: x, top: rect.bottom, transform: 'translate(-50%, 0)', touchAction: 'none', padding: 10, marginTop: -10, marginLeft: -10}},
+    /*#__PURE__*/React.createElement("div", {style: {width: 14, height: 14, borderRadius: '50%', background: color, boxShadow: '0 1px 4px rgba(0,0,0,0.4)'}}));
+  return /*#__PURE__*/React.createElement(React.Fragment, null,
+    handle(rects.start, 'start', rects.start.left),
+    handle(rects.end, 'end', rects.end.right));
+};
+const WordSelectionBar = ({previewText, onHighlight, onCopy, onRsvp, onDismiss, theme}) => {
+  return /*#__PURE__*/React.createElement("div", {className: "fixed inset-x-0 z-[70] flex justify-center px-5", style: {bottom: 'max(1.25rem, env(safe-area-inset-bottom))'}, onClick: e => e.stopPropagation()},
+    /*#__PURE__*/React.createElement("div", {className: "w-full max-w-sm rounded-3xl overflow-hidden", style: {background: theme.panel, border: `1px solid ${theme.line}`, boxShadow: '0 14px 34px -8px rgba(0,0,0,0.35)'}},
+      /*#__PURE__*/React.createElement("div", {className: "px-4 pt-3 pb-2 flex items-center justify-between gap-2"},
+        /*#__PURE__*/React.createElement("p", {className: "text-xs font-mono truncate", style: {color: theme.muted}}, previewText),
+        /*#__PURE__*/React.createElement("button", {onClick: onDismiss, "aria-label": "Cancel selection", className: "p-1 shrink-0", style: {color: theme.muted}}, /*#__PURE__*/React.createElement(X, {size: 15}))),
+      /*#__PURE__*/React.createElement("div", {className: "grid grid-cols-3 border-t", style: {borderColor: theme.line}},
+        [{label: 'Highlight', icon: null, action: onHighlight}, {label: 'Copy', icon: null, action: onCopy}, {label: 'RSVP', icon: null, action: onRsvp}].map((item, i) => /*#__PURE__*/React.createElement("button", {key: item.label, onClick: item.action, className: "py-3 text-sm font-semibold transition-colors active:scale-[0.97]", style: {color: theme.chipText, borderLeft: i > 0 ? `1px solid ${theme.line}` : undefined}}, item.label)))));
+};
 // Only slides when the text actually doesn't fit its container (measured after render); a
 // short label just sits centered like normal. Prevents footer info like the sleep timer
 // countdown from getting clipped on narrow mobile screens.
@@ -1554,7 +1605,11 @@ const ReaderTitle = ({text, onRename, onEdit, color}) => {
   if (!onRename) return React.createElement('div', {ref:box, className:'reader-title font-display text-sm font-semibold', style:{color}, title:text}, React.createElement('span', {ref:track, className:'reader-title-track'}, React.createElement('span', {className:'reader-title-copy'}, text), React.createElement('span', {className:'reader-title-copy reader-title-repeat', 'aria-hidden':true}, text)));
   return React.createElement('button', {ref:box, type:'button', className:'reader-title font-display text-sm font-semibold', style:{color}, title:text, 'aria-label':'Edit title: '+text, onClick:e=>{e.stopPropagation(); cancel.current=false; setDraft(text); setError(''); onEdit(); setEditing(true);}}, React.createElement('span', {ref:track, className:'reader-title-track'}, React.createElement('span', {className:'reader-title-copy'}, text), React.createElement('span', {className:'reader-title-copy reader-title-repeat', 'aria-hidden':true}, text)));
 };
-const renderRichSegment = (wordsSlice, startIndex, chapters) => {
+// isWordMarked: optional (absoluteWordIndex) => truthy-or-className fn used to paint a
+// background behind individual words — backs both persisted highlights and the live
+// drag-to-select range in normal reading mode. Kept as a callback (rather than passing arrays
+// directly) so callers can combine multiple highlight sources cheaply per word.
+const renderRichSegment = (wordsSlice, startIndex, chapters, isWordMarked) => {
   const nodes = [];
   let currentPara = [];
   let paraStart = startIndex;
@@ -1564,7 +1619,13 @@ const renderRichSegment = (wordsSlice, startIndex, chapters) => {
     if (currentPara.length > 0) {
       const isDropCap = dropCapPending;
       dropCapPending = false;
-      nodes.push(/*#__PURE__*/React.createElement("p", {key: `p-${key++}`, "data-start": paraStart, className: `mb-[1.35em]${isDropCap ? ' dropcap' : ''}`}, currentPara.join(' ')));
+      const spans = [];
+      currentPara.forEach(({w, absoluteIndex}, wi) => {
+        const marked = isWordMarked && isWordMarked(absoluteIndex);
+        if (wi > 0) spans.push(' ');
+        spans.push(/*#__PURE__*/React.createElement("span", {key: absoluteIndex, "data-word-idx": absoluteIndex, className: marked ? 'reading-word reading-word--marked' : 'reading-word', style: marked ? {background: typeof marked === 'string' ? marked : undefined} : undefined}, w));
+      });
+      nodes.push(/*#__PURE__*/React.createElement("p", {key: `p-${key++}`, "data-start": paraStart, className: `mb-[1.35em]${isDropCap ? ' dropcap' : ''}`}, spans));
       currentPara = [];
     }
   };
@@ -1583,7 +1644,7 @@ const renderRichSegment = (wordsSlice, startIndex, chapters) => {
       paraStart = absoluteIndex + 1;
     } else {
       if (currentPara.length === 0) paraStart = absoluteIndex;
-      currentPara.push(w);
+      currentPara.push({w, absoluteIndex});
     }
   });
   flush();
@@ -2487,6 +2548,16 @@ function App() {
   const wordLongPressFiredRef = useRef(false);
   const wordIndexAtPoint = (x, y) => {
     try {
+      // Every rendered word is now its own [data-word-idx] span (added so highlights and the
+      // drag-selection can paint individual words), so hit-testing is a direct elementFromPoint
+      // lookup rather than reconstructing a word index from caret position + paragraph text —
+      // the old approach broke once each word became its own text node instead of one shared
+      // per-paragraph text blob.
+      const el = document.elementFromPoint(x, y);
+      const wordEl = el ? el.closest('[data-word-idx]') : null;
+      if (wordEl) return parseInt(wordEl.dataset.wordIdx, 10);
+      // Fall back to the old caret-based approach for points that land between words (e.g. in
+      // the gap between lines) where elementFromPoint may hit the paragraph itself.
       let container, startOffset;
       if (document.caretPositionFromPoint) {
         const pos = document.caretPositionFromPoint(x, y);
@@ -2501,15 +2572,13 @@ function App() {
       } else {
         return null;
       }
-      const el = container.nodeType === 1 ? container : container.parentElement;
-      const ancestor = el ? el.closest('[data-start]') : null;
+      const containerEl = container.nodeType === 1 ? container : container.parentElement;
+      const wordAncestor = containerEl ? containerEl.closest('[data-word-idx]') : null;
+      if (wordAncestor) return parseInt(wordAncestor.dataset.wordIdx, 10);
+      const ancestor = containerEl ? containerEl.closest('[data-start]') : null;
       if (!ancestor) return null;
       const paraStart = parseInt(ancestor.dataset.start, 10) || 0;
       const fullText = container.textContent || '';
-      // Find which word's [start,end) range the caret actually falls inside, rather than
-      // counting completed words in the text before the caret — counting breaks whenever the
-      // caret lands in the middle of the touched word (the common case for a fingertip press),
-      // since the partial word before the caret would get counted as one extra completed word.
       const re = /\S+/g;
       let match;
       let wordIdx = 0;
@@ -2531,6 +2600,12 @@ function App() {
       return null;
     }
   };
+  // Long-pressing a word in normal reading mode used to jump straight into RSVP mode. It now
+  // opens a selection anchored on that word (start === end initially) with a floating
+  // Highlight / Copy / RSVP menu, so the reader can extend the range by dragging either edge
+  // before deciding what to do with it — RSVP always starts from the range's first word.
+  const [wordSelection, setWordSelection] = useState(null); // {start, end} | null, inclusive, start<=end
+  const wordSelectionDragRef = useRef(null); // 'start' | 'end' | null — which handle is being dragged
   const startWordLongPress = (clientX, clientY) => {
     wordLongPressFiredRef.current = false;
     clearTimeout(wordLongPressTimerRef.current);
@@ -2539,17 +2614,94 @@ function App() {
       if (idx !== null && activeBook) {
         wordLongPressFiredRef.current = true;
         triggerHaptic('light');
-        setRsvpTransitionActive(true);
-        setTimeout(() => {
-          setIsPlaying(false);
-          setReadMode('rsvp');
-          setWordIndex(idx);
-          requestAnimationFrame(() => setRsvpTransitionActive(false));
-        }, 380);
+        setWordSelection({start: idx, end: idx});
       }
     }, 450);
   };
   const stopWordLongPress = () => clearTimeout(wordLongPressTimerRef.current);
+  const wordSelectionText = () => {
+    if (!wordSelection || !activeBook) return '';
+    return activeBook.words.slice(wordSelection.start, wordSelection.end + 1).filter(w => w !== PARA_BREAK).join(' ');
+  };
+  const copyWordSelection = async () => {
+    const text = wordSelectionText();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      triggerHaptic('light');
+    } catch (e) { /* clipboard unavailable — silently ignore, selection stays visible */ }
+    setWordSelection(null);
+  };
+  const rsvpFromWordSelection = () => {
+    if (!wordSelection) return;
+    const start = wordSelection.start;
+    setWordSelection(null);
+    setRsvpTransitionActive(true);
+    setTimeout(() => {
+      setIsPlaying(false);
+      setReadMode('rsvp');
+      setWordIndex(start);
+      requestAnimationFrame(() => setRsvpTransitionActive(false));
+    }, 380);
+  };
+  const highlightWordSelection = async () => {
+    if (!wordSelection || !activeBook) return;
+    const {start, end} = wordSelection;
+    const existing = activeBook.highlights || [];
+    // Merge with any existing highlight ranges that touch or overlap this one, so repeated
+    // highlighting of adjacent text reads as one continuous highlight instead of fragmenting.
+    const merged = [];
+    let mergedStart = start, mergedEnd = end, didMerge = false;
+    existing.forEach(h => {
+      if (h.end + 1 >= mergedStart && h.start - 1 <= mergedEnd) {
+        mergedStart = Math.min(mergedStart, h.start);
+        mergedEnd = Math.max(mergedEnd, h.end);
+        didMerge = true;
+      } else {
+        merged.push(h);
+      }
+    });
+    merged.push({start: mergedStart, end: mergedEnd});
+    merged.sort((a, b) => a.start - b.start);
+    setWordSelection(null);
+    triggerHaptic('light');
+    try { await updateShelfBook(activeBook.id, {highlights: merged}); } catch (e) { console.error('Could not save highlight:', e); }
+  };
+  const removeHighlightAt = async idx => {
+    if (!activeBook) return;
+    const existing = activeBook.highlights || [];
+    const next = existing.filter(h => !(idx >= h.start && idx <= h.end));
+    if (next.length === existing.length) return;
+    triggerHaptic('light');
+    try { await updateShelfBook(activeBook.id, {highlights: next}); } catch (e) { console.error('Could not remove highlight:', e); }
+  };
+  const isWordHighlighted = idx => (activeBook?.highlights || []).some(h => idx >= h.start && idx <= h.end);
+  const isWordSelected = idx => wordSelection && idx >= wordSelection.start && idx <= wordSelection.end;
+  useEffect(() => {
+    if (!wordSelection) return;
+    const move = e => {
+      if (!wordSelectionDragRef.current) return;
+      const point = e.touches ? e.touches[0] : e;
+      const idx = wordIndexAtPoint(point.clientX, point.clientY);
+      if (idx === null) return;
+      setWordSelection(prev => {
+        if (!prev) return prev;
+        if (wordSelectionDragRef.current === 'start') return {start: Math.min(idx, prev.end), end: prev.end};
+        return {start: prev.start, end: Math.max(idx, prev.start)};
+      });
+    };
+    const up = () => { wordSelectionDragRef.current = null; };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, {passive: true});
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchend', up);
+    return () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('touchmove', move);
+      window.removeEventListener('mouseup', up);
+      window.removeEventListener('touchend', up);
+    };
+  }, [wordSelection]);
   const openBook = book => {
     setActiveBook(book);
     setWordIndex(book.progress || 0);
@@ -2817,6 +2969,13 @@ function App() {
   }, [sortedOrderKey]);
   const activeReadingTheme = READING_ALL.find(t => t.id === readingThemeId) || READING_PRESETS[0];
   const readerTheme = readingThemeTokens(activeReadingTheme);
+  // Combined highlight-paint callback passed into renderRichSegment: persisted highlights get
+  // a fixed tint, the in-progress drag selection gets the theme accent so it's obviously live.
+  const wordMarkStyle = idx => {
+    if (isWordSelected(idx)) return `${readerTheme.chipText}45`;
+    if (isWordHighlighted(idx)) return `${readerTheme.chipText}30`;
+    return false;
+  };
   const isMobileView = !supportsHover || Math.min(viewportWidth, viewportHeight) < 500;
   // Small phone, turned sideways: the shorter dimension is what actually constrains us (a
   // landscape phone is still "small" even though its width is now large), and there's much
@@ -3043,7 +3202,9 @@ function App() {
   const rsvpControlsBar = /*#__PURE__*/React.createElement("div", {className: "w-full flex items-center justify-center rounded-[26px]", "data-coach": "rsvp-controls", style: {background: readerTheme.playBg, height: 64, padding: '0 4px', boxShadow: `0 6px 16px -6px ${readerTheme.playBg}80, inset 0 1px 0 ${readerTheme.playIcon}14`}}, /*#__PURE__*/React.createElement("button", {onClick: () => handleHoldClick('backward'), onMouseDown: () => startHoldStep('backward'), onMouseUp: stopHoldStep, onMouseLeave: stopHoldStep, onTouchStart: () => startHoldStep('backward'), onTouchEnd: stopHoldStep, onTouchCancel: stopHoldStep, "aria-label": "Previous word", className: "pill-btn flex-1 h-full flex items-center justify-center active:opacity-70", style: {color: readerTheme.playIcon, WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none'}}, /*#__PURE__*/React.createElement(SkipBack, {size: 20})), rsvpControlDivider, /*#__PURE__*/React.createElement("button", {onClick: () => togglePlay(), "aria-label": isPlaying ? "Pause" : "Play", className: "pill-btn flex-1 h-full flex items-center justify-center active:opacity-70", style: {color: readerTheme.playIcon, WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none'}}, isPlaying ? /*#__PURE__*/React.createElement(Pause, {size: 22}) : /*#__PURE__*/React.createElement(Play, {size: 22, className: "ml-0.5"})), rsvpControlDivider, /*#__PURE__*/React.createElement("button", {onClick: () => handleHoldClick('forward'), onMouseDown: () => startHoldStep('forward'), onMouseUp: stopHoldStep, onMouseLeave: stopHoldStep, onTouchStart: () => startHoldStep('forward'), onTouchEnd: stopHoldStep, onTouchCancel: stopHoldStep, "aria-label": "Next word", className: "pill-btn flex-1 h-full flex items-center justify-center active:opacity-70", style: {color: readerTheme.playIcon, WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none'}}, /*#__PURE__*/React.createElement(SkipForward, {size: 20})));
   return /*#__PURE__*/React.createElement("div", {className: "w-full", style: {height: '100dvh', background: '#000', '--font-display': theme.display}}, activeBook ?
   /*#__PURE__*/
-  React.createElement("div", {className: "fixed inset-0 flex flex-col overflow-hidden transition-colors duration-300 book-open-anim", style: {background: readerTheme.bg, '--selection-bg': `${readerTheme.pivot}40`}}, readerHeaderEl, activeBook && /*#__PURE__*/React.createElement("div", {className: "relative w-full shrink-0", style: {height: 26, zIndex: 15}, onClick: e => e.stopPropagation()}, isDraggingProgress && /*#__PURE__*/React.createElement("div", {className: "absolute pointer-events-none", style: {top: 22, left: `${wordIndex / Math.max(activeBook.words.length - 1, 1) * 100}%`, transform: 'translateX(-50%)', transformOrigin: 'top center', animation: 'magnify-pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)'}}, /*#__PURE__*/React.createElement("div", {className: "px-3 py-2 rounded-2xl whitespace-nowrap font-display font-semibold", style: {backgroundColor: readerTheme.pivot, color: isLightColor(readerTheme.pivot) ? '#1a1a1a' : '#ffffff', fontSize: '1.1rem', boxShadow: '0 8px 20px -4px rgba(0,0,0,0.4)'}}, (activeBook.words[wordIndex] === PARA_BREAK ? activeBook.words.slice(wordIndex).find(w => w !== PARA_BREAK) : activeBook.words[wordIndex]) || '')), /*#__PURE__*/React.createElement("input", {type: "range", min: "0", max: Math.max(activeBook.words.length - 1, 1), value: wordIndex, onChange: handleSeek, onMouseDown: () => setIsDraggingProgress(true), onTouchStart: () => setIsDraggingProgress(true), className: "w-full h-full absolute inset-0 opacity-0 cursor-pointer z-10", style: {margin: 0}}), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 top-0 overflow-hidden pointer-events-none", style: {height: isDraggingProgress ? 9 : 6, transition: 'height 0.15s ease', background: `${readerTheme.ink}35`}}, /*#__PURE__*/React.createElement("div", {className: "h-full", style: {width: `${wordIndex / Math.max(activeBook.words.length - 1, 1) * 100}%`, background: readerTheme.pivot}}))), /*#__PURE__*/React.createElement("div", {className: "fixed inset-0", style: {zIndex: 60, background: readerTheme.bg, opacity: rsvpTransitionActive ? 1 : 0, pointerEvents: 'none', transition: 'opacity 0.35s ease'}}), readMode === 'rsvp' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("main", {className: "flex-1 flex items-center justify-center relative cursor-pointer", onMouseDown: e => {
+  React.createElement("div", {className: "fixed inset-0 flex flex-col overflow-hidden transition-colors duration-300 book-open-anim", style: {background: readerTheme.bg, '--selection-bg': `${readerTheme.pivot}40`}}, readerHeaderEl, activeBook && /*#__PURE__*/React.createElement("div", {className: "relative w-full shrink-0", style: {height: 26, zIndex: 15}, onClick: e => e.stopPropagation()}, isDraggingProgress && /*#__PURE__*/React.createElement("div", {className: "absolute pointer-events-none", style: {top: 22, left: `${wordIndex / Math.max(activeBook.words.length - 1, 1) * 100}%`, transform: 'translateX(-50%)', transformOrigin: 'top center', animation: 'magnify-pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)'}}, /*#__PURE__*/React.createElement("div", {className: "px-3 py-2 rounded-2xl whitespace-nowrap font-display font-semibold", style: {backgroundColor: readerTheme.pivot, color: isLightColor(readerTheme.pivot) ? '#1a1a1a' : '#ffffff', fontSize: '1.1rem', boxShadow: '0 8px 20px -4px rgba(0,0,0,0.4)'}}, (activeBook.words[wordIndex] === PARA_BREAK ? activeBook.words.slice(wordIndex).find(w => w !== PARA_BREAK) : activeBook.words[wordIndex]) || '')), /*#__PURE__*/React.createElement("input", {type: "range", min: "0", max: Math.max(activeBook.words.length - 1, 1), value: wordIndex, onChange: handleSeek, onMouseDown: () => setIsDraggingProgress(true), onTouchStart: () => setIsDraggingProgress(true), className: "w-full h-full absolute inset-0 opacity-0 cursor-pointer z-10", style: {margin: 0}}), /*#__PURE__*/React.createElement("div", {className: "absolute inset-x-0 top-0 overflow-hidden pointer-events-none", style: {height: isDraggingProgress ? 9 : 6, transition: 'height 0.15s ease', background: `${readerTheme.ink}35`}}, /*#__PURE__*/React.createElement("div", {className: "h-full", style: {width: `${wordIndex / Math.max(activeBook.words.length - 1, 1) * 100}%`, background: readerTheme.pivot}}))), /*#__PURE__*/React.createElement("div", {className: "fixed inset-0", style: {zIndex: 60, background: readerTheme.bg, opacity: rsvpTransitionActive ? 1 : 0, pointerEvents: 'none', transition: 'opacity 0.35s ease'}}), readMode === 'normal' && wordSelection && /*#__PURE__*/React.createElement(React.Fragment, null,
+  /*#__PURE__*/React.createElement(SelectionHandles, {start: wordSelection.start, end: wordSelection.end, onDragStart: edge => { wordSelectionDragRef.current = edge; }, color: readerTheme.chipText}),
+  /*#__PURE__*/React.createElement(WordSelectionBar, {previewText: wordSelectionText() || '\u2026', onHighlight: highlightWordSelection, onCopy: copyWordSelection, onRsvp: rsvpFromWordSelection, onDismiss: () => setWordSelection(null), theme: readerTheme})), readMode === 'rsvp' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("main", {className: "flex-1 flex items-center justify-center relative cursor-pointer", onMouseDown: e => {
       if (Date.now() - lastRsvpTouchRef.current < 700) return;
       handleScrubStart(e.clientX, e.currentTarget.getBoundingClientRect());
     }, onTouchStart: e => {
@@ -3053,6 +3214,7 @@ function App() {
       handleScrubStart(touch.clientX, e.currentTarget.getBoundingClientRect());
     }}, skyMode === 'stars' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '12%', left: '14%', width: 9, height: 9, opacity: 0.35, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '22%', right: '18%', width: 7, height: 7, opacity: 0.25}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {bottom: '18%', left: '22%', width: 6, height: 6, opacity: 0.2}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '35%', left: '8%', width: 5, height: 5, opacity: 0.3}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {bottom: '30%', right: '14%', width: 6, height: 6, opacity: 0.22}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '55%', right: '30%', width: 5, height: 5, opacity: 0.18}, color: readerTheme.ink})) : skyMode === 'clouds' ? /*#__PURE__*/React.createElement(React.Fragment, null, React.createElement(DayWater,{position:'fixed',height:'17%'}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '10%', right: '4%', width: 44, height: 28, opacity: 0.18, '--cloud-op': 0.18, animationDuration: '170.8s', animationDelay: '-4s'}}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {bottom: '22%', left: '10%', width: 34, height: 22, opacity: 0.14, '--cloud-op': 0.14, animationDuration: '223.6s', animationDelay: '-30s'}}), /*#__PURE__*/React.createElement(PixelCloudB, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '32%', right: '22%', width: 26, height: 16, opacity: 0.11, filter: 'brightness(0.85) saturate(0.6)', '--cloud-op': 0.11, animationDuration: '260s', animationDelay: '-60s'}}), /*#__PURE__*/React.createElement(PixelCloudC, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {bottom: '32%', right: '6%', width: 50, height: 32, opacity: 0.26, filter: 'brightness(1.05)', '--cloud-op': 0.26, animationDuration: '150s', animationDelay: '-18s'}}), /*#__PURE__*/React.createElement(PixelCloudB, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '6%', left: '8%', width: 30, height: 19, opacity: 0.15, '--cloud-op': 0.15, animationDuration: '198s', animationDelay: '-45s'}}), /*#__PURE__*/React.createElement(PixelCloudC, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {top: '46%', left: '4%', width: 38, height: 24, opacity: 0.16, '--cloud-op': 0.16, animationDuration: '215s', animationDelay: '-8s'}}), /*#__PURE__*/React.createElement(PixelCloud, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-cloud-anim' : ''}`, style: {bottom: '48%', right: '28%', width: 30, height: 19, opacity: 0.13, '--cloud-op': 0.13, animationDuration: '240s', animationDelay: '-52s'}})) : skyMode === 'campfire' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '10%', left: '14%', width: 8, height: 8, opacity: 0.7, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '18%', right: '20%', width: 6, height: 6, opacity: 0.5, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '30%', left: '8%', width: 5, height: 5, opacity: 0.4, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '42%', right: '14%', width: 6, height: 6, opacity: 0.45, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '55%', right: '32%', width: 5, height: 5, opacity: 0.35, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '5%', right: '42%', width: 5, height: 5, opacity: 0.5, color: readerTheme.ink}, color: readerTheme.ink}), /*#__PURE__*/React.createElement(PixelStar, {className: `absolute pointer-events-none ${skyAnimated ? 'sky-star-anim' : ''}`, style: {top: '48%', left: '38%', width: 5, height: 5, opacity: 0.3, color: readerTheme.ink}, color: readerTheme.ink}), skyAnimated && SHOOTING_STARS.map((s, i) => /*#__PURE__*/React.createElement("div", {key: `campfire-shoot-${i}`, className: "absolute pointer-events-none", style: {top: s.top, left: s.left, right: s.right, transform: `rotate(${s.angle}deg)`}}, /*#__PURE__*/React.createElement("div", {className: "sky-shoot-move", style: {animationDuration: `${s.duration}s`, animationDelay: `${s.delay}s`}}, /*#__PURE__*/React.createElement(PixelShootingStar, {style: {width: s.size, height: s.size * 10 / 36, opacity: s.opacity, color: readerTheme.ink}, color: readerTheme.ink})))), /*#__PURE__*/React.createElement(CampfireGrass, {className: "fixed bottom-0 left-0 right-0 pointer-events-none", style: {width: '100%', height: '17%'}})) : null), skyMode === 'campfire' && skyMode === 'campfire' && (isSmallLandscape ? /*#__PURE__*/React.createElement(FireLightBeam, {positionClass: "fixed", bottom: '17%', size: isMobileView ? 130 : 150, height: isPlaying ? 'calc(100% - 8%)' : (isMobileView ? '68%' : 220), opacity: isPlaying ? 1 : 0.5, transition: 'height 0.4s ease, opacity 0.4s ease'}) : /*#__PURE__*/React.createElement(InteractiveFire, {positionClass: "fixed", wrapperStyle: {bottom: '17%', left: '50%', transform: 'translateX(-50%)'}, size: isMobileView ? 130 : 150, skyAnimated: skyAnimated, pull: firePull, snapping: fireSnapping, onPointerDown: firePointerDown, beamHeight: isPlaying ? 'calc(100% - 8%)' : (isMobileView ? '68%' : 220), beamOpacity: isPlaying ? 1 : 0.5, beamTransition: 'height 0.4s ease, opacity 0.4s ease', interactive: !isPlaying})), skyMode === 'clouds' && !hideMoonSun && /*#__PURE__*/React.createElement(InteractiveSun, {positionClass: "fixed", wrapperStyle: {top: `calc(${rsvpHeaderHeight}px - ${(isMobileView ? 206 : 254) * (isSmallLandscape ? 0.85 : 0.5)}px)`, left: '50%', transform: 'translateX(-50%)'}, size: isMobileView ? 206 : 254, animated: false, pull: sunPull, snapping: sunSnapping, onPointerDown: sunPointerDown, beamColor: '#eab567', beamHeight: isPlaying ? 'calc(100% - 8%)' : (isMobileView ? 'calc(78% - 8%)' : 180), beamOpacity: isPlaying ? 1 : 0.5, beamTransition: 'height 0.4s ease, opacity 0.4s ease', interactive: !isPlaying}), skyMode === 'lamp' && (isSmallLandscape ? /*#__PURE__*/React.createElement(LampLightBeam, {positionClass: "fixed", top: `calc(0% + ${(isMobileView ? 126 : 90) + 54}px)`, size: 340, beamColor: readerTheme.pivot, height: isPlaying ? 'calc(100% - 8%)' : (isMobileView ? 'calc(78% - 8%)' : 180), opacity: isPlaying ? 1 : 0.5, transition: 'height 0.4s ease, opacity 0.4s ease'}) : /*#__PURE__*/React.createElement(InteractiveLamp, {wrapperClassName: "fixed pointer-events-none", wrapperStyle: {top: '0%', left: '50%', transform: 'translateX(-50%)', width: '85%', maxWidth: 340, zIndex: 4}, interactive: !isPlaying, ink: readerTheme.ink, beam: readerTheme.pivot, cordLength: isMobileView ? 126 : 90, pull: lampPull, snapping: lampSnapping, onPointerDown: lampPointerDown, pixelStyle: pixelLamp, size: 340, beamHeight: isPlaying ? 'calc(100% - 8%)' : (isMobileView ? 'calc(78% - 8%)' : 180), beamOpacity: isPlaying ? 1 : 0.5, beamTransition: 'height 0.4s ease, opacity 0.4s ease'})), skyMode === 'stars' && !hideMoonSun && /*#__PURE__*/React.createElement(InteractiveMoon, {positionClass: "fixed", wrapperStyle: {top: `calc(${rsvpHeaderHeight}px - ${(isMobileView ? 206 : 254) * (isSmallLandscape ? 0.85 : 0.5)}px)`, left: '50%', transform: 'translateX(-50%)'}, size: isMobileView ? 206 : 254, moonColor: '#d6d2c4', animated: false, pull: moonPull, snapping: moonSnapping, onPointerDown: moonPointerDown, beamColor: '#d6d2c4', beamHeight: isPlaying ? 'calc(100% - 8%)' : (isMobileView ? 'calc(78% - 8%)' : 180), beamOpacity: isPlaying ? 1 : 0.5, beamTransition: 'height 0.4s ease, opacity 0.4s ease', interactive: !isPlaying}), /*#__PURE__*/React.createElement(RSVPContextPreview, {words: activeBook.words, wordIndex: wordIndex, ink: readerTheme.ink, pivotColor: readerTheme.pivot, visible: !isPlaying && !rsvpTransitionActive}), readingThemeId === 'kindle' && /*#__PURE__*/React.createElement("div", {className: "rsvp-vignette fixed inset-0", style: {zIndex: 7, pointerEvents: 'none'}}), /*#__PURE__*/React.createElement("div", {className: "fixed inset-0 flex items-center justify-center", style: {pointerEvents: 'none', zIndex: 5}}, /*#__PURE__*/React.createElement("div", {"data-coach": "rsvp-word", style: {display: 'inline-block'}}, /*#__PURE__*/React.createElement(RSVPWord, {words: activeBook.words[wordIndex] === PARA_BREAK ? ["The end."] : getRsvpChunk(activeBook.words, wordIndex, chunkSize).chunk, isPlaying: isPlaying, ink: readerTheme.ink, pivotColor: readerTheme.pivot, glowColor: readerTheme.glow, dialogueColor: '#e85a8c', isDialogue: !!dialogueMask[wordIndex], sizeScale: FONT_SIZES[fontSizeIdx] / FONT_SIZES[1], orpMarkerStyle: orpMarkerStyle}))), seekFlash && /*#__PURE__*/React.createElement("div", {key: seekFlash.key, className: "seek-flash fixed top-1/2 flex flex-col items-center gap-1.5", style: {[seekFlash.side === 'left' ? 'left' : 'right']: '10%', zIndex: 6, pointerEvents: 'none'}}, /*#__PURE__*/React.createElement("div", {className: "rounded-full flex items-center justify-center", style: {width: 60, height: 60, background: `${readerTheme.ink}1f`}}, seekFlash.side === 'left' ? /*#__PURE__*/React.createElement(SkipBack, {size: 24, style: {color: readerTheme.ink}}) : /*#__PURE__*/React.createElement(SkipForward, {size: 24, style: {color: readerTheme.ink}})), /*#__PURE__*/React.createElement("span", {className: "font-mono text-[11px] font-semibold", style: {color: readerTheme.ink}}, "10 words"))) : (pageMode === 'scroll' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("main", {className: "flex-1 overflow-y-auto overflow-x-hidden no-scrollbar", "data-coach": "reader-flow-text", style: {touchAction: 'pan-y', overscrollBehaviorX: 'none'}, ref: scrollContainerRef, onClick: () => {
       if (wordLongPressFiredRef.current) { wordLongPressFiredRef.current = false; return; }
+      if (wordSelection) { setWordSelection(null); return; }
       const sel = window.getSelection();
       if (sel && sel.toString().trim()) return;
       if (isMobileView && showControls) setShowControls(false);
@@ -3061,8 +3223,9 @@ function App() {
       const el = e.currentTarget;
       const ratio = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight);
       setWordIndex(Math.round(ratio * (activeBook.words.length - 1)));
-    }}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto px-8 lg:px-16 pt-6 pb-24"}, /*#__PURE__*/React.createElement("div", {className: "font-display leading-[1.85] select-text", onTouchStart: isMobileView ? e => startWordLongPress(e.touches[0].clientX, e.touches[0].clientY) : undefined, onTouchEnd: isMobileView ? stopWordLongPress : undefined, onTouchMove: isMobileView ? stopWordLongPress : undefined, style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, activeBook ? renderRichSegment(activeBook.words, 0, activeBook.chapters) : '')))) : /*#__PURE__*/React.createElement("main", {className: "flex-1 relative overflow-hidden", onClick: e => {
+    }}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto px-8 lg:px-16 pt-6 pb-24"}, /*#__PURE__*/React.createElement("div", {className: "font-display leading-[1.85] select-text", onMouseDown: !isMobileView ? e => startWordLongPress(e.clientX, e.clientY) : undefined, onMouseUp: !isMobileView ? stopWordLongPress : undefined, onMouseLeave: !isMobileView ? stopWordLongPress : undefined, onTouchStart: isMobileView ? e => startWordLongPress(e.touches[0].clientX, e.touches[0].clientY) : undefined, onTouchEnd: isMobileView ? stopWordLongPress : undefined, onTouchMove: isMobileView ? stopWordLongPress : undefined, onClickCapture: e => { const wordEl = e.target.closest && e.target.closest('[data-word-idx]'); if (wordEl && isWordHighlighted(parseInt(wordEl.dataset.wordIdx, 10)) && !wordSelection) { e.stopPropagation(); removeHighlightAt(parseInt(wordEl.dataset.wordIdx, 10)); } }, style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, activeBook ? renderRichSegment(activeBook.words, 0, activeBook.chapters, wordMarkStyle) : '')))) : /*#__PURE__*/React.createElement("main", {className: "flex-1 relative overflow-hidden", onClick: e => {
       if (wordLongPressFiredRef.current) { wordLongPressFiredRef.current = false; return; }
+      if (wordSelection) { setWordSelection(null); return; }
       const sel = window.getSelection();
       if (sel && sel.toString().trim()) return;
       const rect = e.currentTarget.getBoundingClientRect();
@@ -3079,7 +3242,7 @@ function App() {
       if (Math.abs(deltaX) > 48) {
         if (deltaX < 0) goForwardPage();else goBackPage();
       }
-    }}, /*#__PURE__*/React.createElement("div", {key: pageStart, className: skipPageAnimRef.current ? "absolute inset-0" : `absolute inset-0 page-anim-${pageAnimStyle}`, style: {'--page-dir': pageDirection, background: readerTheme.bg, transformOrigin: pageAnimStyle === 'curl' ? (pageDirection === 1 ? 'right center' : 'left center') : undefined}}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto h-full px-8 lg:px-16 pt-6 pb-14", "data-coach": "reader-flow-text"}, /*#__PURE__*/React.createElement("div", {ref: pageBoxRef, className: "h-full overflow-hidden flex flex-col", style: {justifyContent: showControls ? 'flex-start' : 'center'}}, /*#__PURE__*/React.createElement("div", {ref: pageContentRef}, /*#__PURE__*/React.createElement("div", {className: "font-display leading-[1.85] select-text", onTouchStart: isMobileView ? e => startWordLongPress(e.touches[0].clientX, e.touches[0].clientY) : undefined, onTouchEnd: isMobileView ? stopWordLongPress : undefined, onTouchMove: isMobileView ? stopWordLongPress : undefined, style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, renderRichSegment(pageWords, pageStart, activeBook.chapters)))))), /*#__PURE__*/React.createElement("button", {onClick: e => {
+    }}, /*#__PURE__*/React.createElement("div", {key: pageStart, className: skipPageAnimRef.current ? "absolute inset-0" : `absolute inset-0 page-anim-${pageAnimStyle}`, style: {'--page-dir': pageDirection, background: readerTheme.bg, transformOrigin: pageAnimStyle === 'curl' ? (pageDirection === 1 ? 'right center' : 'left center') : undefined}}, /*#__PURE__*/React.createElement("div", {className: "reading-page mx-auto h-full px-8 lg:px-16 pt-6 pb-14", "data-coach": "reader-flow-text"}, /*#__PURE__*/React.createElement("div", {ref: pageBoxRef, className: "h-full overflow-hidden flex flex-col", style: {justifyContent: showControls ? 'flex-start' : 'center'}}, /*#__PURE__*/React.createElement("div", {ref: pageContentRef}, /*#__PURE__*/React.createElement("div", {className: "font-display leading-[1.85] select-text", onMouseDown: !isMobileView ? e => startWordLongPress(e.clientX, e.clientY) : undefined, onMouseUp: !isMobileView ? stopWordLongPress : undefined, onMouseLeave: !isMobileView ? stopWordLongPress : undefined, onTouchStart: isMobileView ? e => startWordLongPress(e.touches[0].clientX, e.touches[0].clientY) : undefined, onTouchEnd: isMobileView ? stopWordLongPress : undefined, onTouchMove: isMobileView ? stopWordLongPress : undefined, onClickCapture: e => { const wordEl = e.target.closest && e.target.closest('[data-word-idx]'); if (wordEl && isWordHighlighted(parseInt(wordEl.dataset.wordIdx, 10)) && !wordSelection) { e.stopPropagation(); removeHighlightAt(parseInt(wordEl.dataset.wordIdx, 10)); } }, style: {color: readerTheme.ink, fontSize: `${FONT_SIZES[fontSizeIdx]}rem`, textAlign: textAlign}}, renderRichSegment(pageWords, pageStart, activeBook.chapters, wordMarkStyle)))))), /*#__PURE__*/React.createElement("button", {onClick: e => {
       e.stopPropagation();
       goBackPage();
     }, disabled: isFirstPage, className: "hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-opacity disabled:opacity-0", style: {color: readerTheme.muted}, "aria-label": "Previous page"}, /*#__PURE__*/React.createElement(ChevronLeft, {size: 20})), /*#__PURE__*/React.createElement("button", {onClick: e => {
