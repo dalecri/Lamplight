@@ -2567,7 +2567,10 @@ function App() {
     if (!activeBook || readMode !== 'normal' || pageMode !== 'scroll') return;
     const el = scrollContainerRef.current;
     if (!el) return;
-    const ratio = activeBook.words.length > 1 ? (book => book.progress || 0)(activeBook) / (activeBook.words.length - 1) : 0;
+    // Use the live wordIndex (current reading position), not activeBook.progress (the value
+    // saved at book-open time) — otherwise toggling swipe -> scroll mid-session jumps back to
+    // wherever the book was left off last session instead of staying put.
+    const ratio = activeBook.words.length > 1 ? wordIndexRef.current / (activeBook.words.length - 1) : 0;
     el.scrollTop = ratio * Math.max(0, el.scrollHeight - el.clientHeight);
   }, [activeBook, pageMode, readMode]);
   useEffect(() => {
