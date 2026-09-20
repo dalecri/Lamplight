@@ -16,9 +16,9 @@ A calm, single-file EPUB reader built around RSVP (Rapid Serial Visual Presentat
 
 ## Architecture
 
-Everything lives in a single `index.html`. No build step, no bundler.
+Everything lives in a single `index.html`. No build step, no bundler. All third-party dependencies are vendored locally (`vendor/`, `fonts/`, `fonts.css`) — nothing loads from a CDN at runtime, so the app works fully offline once the folder is served.
 
-- **UI**: React 18 (UMD build from cdnjs) written entirely as `React.createElement(...)` calls — there's no JSX transpilation step, so components are plain functions returning nested `createElement` trees. Styling is Tailwind via the CDN play script, plus a `<style>` block for anything Tailwind can't express (custom keyframes, `::first-letter` drop caps, slider thumbs, etc.).
+- **UI**: React 18 (vendored UMD build, `vendor/react.production.min.js` + `vendor/react-dom.production.min.js`) written entirely as `React.createElement(...)` calls — there's no JSX transpilation step, so components are plain functions returning nested `createElement` trees. Styling is Tailwind via the vendored play-CDN script (`vendor/tailwind.js`, does its JIT compilation in-browser same as before, just loaded from disk instead of `cdn.tailwindcss.com`), plus a `<style>` block for anything Tailwind can't express (custom keyframes, `::first-letter` drop caps, slider thumbs, etc.). Fonts (Fraunces, Inter, IBM Plex Mono, Lexend, Atkinson Hyperlegible, OpenDyslexic) are self-hosted woff2/woff files under `fonts/`, referenced from `fonts.css`.
 - **EPUB parsing**: `epub.js` (via a global `window.ePub`) reads spine items, extracts plain text per chapter, strips `<style>`/`<script>` tags, splits it into a flat word array (with a special `PARA_BREAK` sentinel marking paragraph boundaries), and pulls chapter titles from the parsed navigation/TOC matched against spine hrefs.
 - **State**: one big function component (`App`). No external state library — everything is `useState`/`useEffect`/`useRef`, with a handful of module-level pure helper functions above the component (word-timing math, color math, template/theme lookups, etc.).
 - **Persistence**: two local stores, both scoped entirely to the browser/WebView:
@@ -37,4 +37,4 @@ Everything lives in a single `index.html`. No build step, no bundler.
 
 ## Local development
 
-There's nothing to install. Open `index.html` in a browser, or serve the folder with any static file server. `books-data.js` (referenced but not required to exist) can optionally define `window.CURATED_BOOKS` — an array of pre-bundled starter books offered during onboarding.
+There's nothing to install. Serve the folder with any static file server (e.g. `python3 -m http.server`) and open it — required for PDF import, which loads `vendor/pdfjs/pdf.min.mjs` as an ES module and won't run over a bare `file://` URL in most browsers. `books-data.js` (referenced but not required to exist) can optionally define `window.CURATED_BOOKS` — an array of pre-bundled starter books offered during onboarding.
