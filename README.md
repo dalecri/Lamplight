@@ -2,6 +2,12 @@
 
 A calm, single-file EPUB reader built around RSVP (Rapid Serial Visual Presentation) reading — one word (or a small chunk of words) flashed at a time — plus a conventional paginated/scroll reading mode for when you'd rather read normally. Everything runs client-side: no account, no server, no analytics. Your books and progress live only on your device.
 
+## Web preview books
+
+Web visitors land directly on the shelf with three bundled classics: **Frankenstein**, **A Christmas Carol**, and **Dracula**. Both normal and RSVP reading work immediately, without an upload or external download. The texts and their Project Gutenberg notices are retained in `books-data.js`.
+
+Samples are added once to an empty browser library. Existing personal libraries are left alone, progress persists normally, and deleted samples stay deleted. **Reading Stats → Restore sample books** (or **Try sample books** on an empty shelf) restores missing titles without resetting existing progress. Native Capacitor builds retain their onboarding flow and optional book selection. Web users can still access setup through **Reading Stats → Replay intro**.
+
 ## What it does
 
 - **Import EPUBs** from the device's file picker. Cover art, metadata, chapter list, and word stream are all extracted client-side (via `epub.js` + `JSZip`) and stored locally.
@@ -23,7 +29,7 @@ Everything lives in a single `index.html`. No build step, no bundler. All third-
 - **State**: one big function component (`App`). No external state library — everything is `useState`/`useEffect`/`useRef`, with a handful of module-level pure helper functions above the component (word-timing math, color math, template/theme lookups, etc.).
 - **Persistence**: two local stores, both scoped entirely to the browser/WebView:
   - **IndexedDB** (`lamplight_local_db`, store `books`, keyed by `id`) — the actual book records: title, author, cover (data URL), word array, chapters, and reading progress (a word index). This is the only place book text lives.
-  - **localStorage** — three small JSON blobs: `lamplight_settings_v1` (all user preferences — theme, font, wpm, layout toggles, etc.), `lamplight_stats_v1` (lifetime words read + a per-day `{words, wpmSum}` map for the streak/chart), and one-off flags (`lamplight_intro_seen_v1`, `lamplight_local_seeded_v1`) that gate onboarding and demo-book seeding.
+  - **localStorage** — three small JSON blobs: `lamplight_settings_v1` (all user preferences — theme, font, wpm, layout toggles, etc.), `lamplight_stats_v1` (lifetime words read + a per-day `{words, wpmSum}` map for the streak/chart), and one-off flags (`lamplight_intro_seen_v1`, `lamplight_web_samples_v1`) that gate onboarding and web sample-book seeding.
 - **Native bridge (optional)**: a few hooks are written defensively for a Capacitor wrapper if one is ever added — haptics (`window.Capacitor?.Plugins?.Haptics`, falling back to `navigator.vibrate`) and a `lamplight-volume` custom window event a native shell could dispatch to bump reading speed from hardware volume buttons. Neither is required for the web app to work; they're just no-ops without a native layer.
 
 ## Key files/sections to know if you're editing this
